@@ -2,7 +2,8 @@
  * 모든 외부 API 키(Tmap/V-World/기상청)는 백엔드에만 존재한다 (HANDOFF 3절).
  */
 import type {
-  Answers, AssessResult, MapConfig, Poi, RouteResult, WeatherInfo,
+  Answers, AssessResult, DongPopulation, FloatingPopulation, MapConfig, Poi,
+  RouteResult, WeatherInfo,
 } from "./types";
 
 export const API_BASE =
@@ -79,6 +80,14 @@ export const getWeather = (lat: number, lon: number, date: string) =>
   request<WeatherInfo>(`/api/weather?lat=${lat}&lon=${lon}&date=${date}`);
 
 export const getMapConfig = () => request<MapConfig>("/api/map/config");
+
+/** SGIS 인구·인구밀도·고령화 지표 (키 미설정 시 503) */
+export const getDongPopulation = (admCd: string, lowSearch: "0" | "1" = "0") =>
+  request<DongPopulation[]>(`/api/population/dong?adm_cd=${admCd}&low_search=${lowSearch}`);
+
+/** 서울 생활인구(유동인구) — date는 YYYYMMDD, 약 1주 전까지 공개 */
+export const getFloatingPopulation = (admCd: string, date: string) =>
+  request<FloatingPopulation>(`/api/population/floating?adm_cd=${admCd}&date=${date}`);
 
 /** 프록시 타일 URL을 절대 주소로 변환 (V-World 프록시는 백엔드 기준 상대경로) */
 export const resolveTileUrl = (cfg: MapConfig): string =>

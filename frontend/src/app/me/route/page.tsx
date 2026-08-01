@@ -286,6 +286,10 @@ export default function RoutePage() {
                   }}>{SLOPE_LABELS[i]}</span>
                 ))}
               </div>
+              <div style={{ fontSize: 13, color: "var(--ink-muted)", marginTop: 8 }}>
+                경로 구간·급경사 원·지도의 아무 지점이나 클릭하면 <b>카카오 로드뷰</b>로
+                실제 도로 상태(계단·경사·노면)를 확인할 수 있습니다.
+              </div>
             </Card>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>

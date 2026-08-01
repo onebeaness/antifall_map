@@ -51,7 +51,7 @@ export function ElevationProfile({ distances, elevations }: {
       <polyline points={line} fill="none" stroke="#2b83ba" strokeWidth={2} strokeLinejoin="round" />
       {distances.map((d, i) => (
         <circle key={i} cx={x(d)} cy={y(elevations[i])} r={6} fill="transparent">
-          <title>{(d / 1000).toFixed(2)}km · 고도 {elevations[i].toFixed(0)}m</title>
+          <title>{`${(d / 1000).toFixed(2)}km · 고도 ${elevations[i].toFixed(0)}m`}</title>
         </circle>
       ))}
     </svg>

@@ -36,6 +36,8 @@ uvicorn app.main:app --reload --port 8000
 - `POST /api/assess/simple` · `POST /api/assess/precision` — `{answers, fall_experience}`
 - `GET /api/poi?q=` · `POST /api/route` · `GET /api/weather?lat&lon&date`
 - `GET /api/map/config` · `GET /api/map/tile/{layer}/{z}/{y}/{x}.png` (V-World 프록시)
+- `GET /api/population/dong?adm_cd=` — SGIS 인구밀도·평균나이·노령화지수 (전국)
+- `GET /api/population/floating?adm_cd=&date=` — 서울 생활인구(유동인구, 시간대별)
 
 ### 프론트엔드 (Node 20+)
 
@@ -51,6 +53,18 @@ npm run dev                  # http://localhost:3000
 `/` 랜딩(분할형) → `/register` 간편 등록 → `/me` 진단 허브
 → `/me/simple` 간단 6문항 · `/me/precision` 정밀 42문항 · `/me/report` 보고서
 → `/me/route` 경사도 안전 경로(+날씨) · `/dashboard` B2G 대시보드(목업)
+
+### 외부 데이터 연동
+
+| 기능 | 소스 | 키 | 없을 때 |
+|---|---|---|---|
+| 인구밀도·평균나이·노령화지수 | SGIS 통계청 (`stats/population.json`) | `SGIS_CONSUMER_KEY/SECRET` ([발급](https://sgis.kostat.go.kr/developer)) | 대시보드에 시연용 목업 표시 |
+| 유동인구(시간대별 생활인구) | 서울 열린데이터광장 `SPOP_LOCAL_RESD_DONG` | `SEOUL_OPENAPI_KEY` ([발급](https://data.seoul.go.kr)) — 서울 한정 | 〃 |
+| 로드뷰 | 카카오맵 URL 링크 (`map.kakao.com/link/roadview/…`) | **불필요** | — |
+
+로드뷰는 경로 지도(구간·급경사·임의 지점 클릭)와 대시보드(위험 구간 표·마커 팝업)에서
+새 탭으로 열린다. 임베드형이 필요하면 Kakao Maps JS SDK(appkey)로 교체 —
+`frontend/src/lib/kakao.ts`가 교체 지점.
 
 ## ML 확정 사항 (2026-07-15 배포용 zip 반영)
 

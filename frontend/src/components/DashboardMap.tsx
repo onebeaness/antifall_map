@@ -4,6 +4,7 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { kakaoRoadviewUrl } from "@/lib/kakao";
 
 export interface DashRow {
   rank: number;
@@ -42,6 +43,11 @@ export default function DashboardMap({ rows }: { rows: DashRow[] }) {
       }).bindTooltip(
         `<b>${r.dong} ${r.block}</b><br>위험점수 ${r.score} (${GRADE_LABEL(r.score)})<br>` +
         `경사 ${r.slopeDeg}° · 65세 이상 ${r.elderlyPct}%<br>권고: ${r.action} (약 ${r.budget}백만원)`,
+      ).bindPopup(
+        `<div style="font-size:13px;line-height:1.6"><b>${r.dong} ${r.block}</b><br>` +
+        `위험점수 ${r.score} (${GRADE_LABEL(r.score)}) · 경사 ${r.slopeDeg}°<br>` +
+        `<a href="${kakaoRoadviewUrl(r.lat, r.lon)}" target="_blank" rel="noopener" ` +
+        `style="font-weight:700;color:#0B5394;text-decoration:underline">현장 로드뷰 보기 ↗</a></div>`,
       ).addTo(map);
     }
 

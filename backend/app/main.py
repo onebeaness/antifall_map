@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import config
-from app.routers import assess, map_tile, poi, route, weather
+from app.routers import assess, map_tile, poi, population, route, weather
 from app.services import fall_model
 
 app = FastAPI(
@@ -31,6 +31,7 @@ app.include_router(poi.router, prefix="/api", tags=["poi"])
 app.include_router(route.router, prefix="/api", tags=["route"])
 app.include_router(weather.router, prefix="/api", tags=["weather"])
 app.include_router(map_tile.router, prefix="/api/map", tags=["map"])
+app.include_router(population.router, prefix="/api", tags=["population"])
 
 
 @app.get("/api/health")
@@ -43,4 +44,6 @@ def health() -> dict:
         "tmap_configured": bool(config.TMAP_APP_KEY),
         "vworld_configured": bool(config.VWORLD_API_KEY),
         "kweather_configured": bool(config.KWEATHER_API_KEY),
+        "sgis_configured": bool(config.SGIS_CONSUMER_KEY and config.SGIS_CONSUMER_SECRET),
+        "seoul_configured": bool(config.SEOUL_OPENAPI_KEY),
     }

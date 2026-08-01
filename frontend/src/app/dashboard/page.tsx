@@ -10,6 +10,8 @@ import { Button, Card, KpiCard, NoticeStrip, SignalBadge } from "@/components/ui
 import { AgeBars } from "@/components/charts/AgeBars";
 import { TrendLine } from "@/components/charts/TrendLine";
 import type { DashRow } from "@/components/DashboardMap";
+import { PopulationPanel } from "@/components/PopulationPanel";
+import { kakaoRoadviewUrl } from "@/lib/kakao";
 import { levelOf } from "@/lib/scoring";
 import type { Level } from "@/lib/types";
 
@@ -125,7 +127,7 @@ export default function DashboardPage() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
               <thead>
                 <tr style={{ color: "var(--ink-muted)", textAlign: "left" }}>
-                  {["순위", "구간", "행정동", "위험점수", "경사(°)", "65세↑", "권고 보강"].map((h) => (
+                  {["순위", "구간", "행정동", "위험점수", "경사(°)", "65세↑", "권고 보강", "현장"].map((h) => (
                     <th key={h} style={{ padding: "6px 8px", borderBottom: "1px solid var(--line)", whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
@@ -140,6 +142,12 @@ export default function DashboardPage() {
                     <td style={{ padding: "7px 8px" }}>{r.slopeDeg.toFixed(1)}</td>
                     <td style={{ padding: "7px 8px" }}>{r.elderlyPct}%</td>
                     <td style={{ padding: "7px 8px", fontSize: 12.5, color: "var(--ink-muted)" }}>{r.action}</td>
+                    <td style={{ padding: "7px 8px", whiteSpace: "nowrap" }}>
+                      <a href={kakaoRoadviewUrl(r.lat, r.lon)} target="_blank" rel="noopener noreferrer"
+                         style={{ fontSize: 12.5, fontWeight: 700, color: "var(--medical-blue)", textDecoration: "underline" }}>
+                        로드뷰 ↗
+                      </a>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -148,11 +156,16 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {/* 인구 · 유동인구 분석 (SGIS + 서울 생활인구) */}
+      <div style={{ marginTop: 18 }}>
+        <PopulationPanel />
+      </div>
+
       {/* 추이 차트 */}
       <div className="dash-grid-2" style={{ marginTop: 18 }}>
         <Card style={{ padding: 18 }}>
           <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 8 }}>월별 낙상 신고 추이 (최근 12개월)</div>
-          <TrendLine labels={MONTHS} values={MONTHLY} />
+          <TrendLine labels={MONTHS} values={MONTHLY} unit="건" ariaLabel="월별 낙상 신고 추이" />
           <div style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>
             겨울철(25.11–26.01) 결빙기 신고가 연중 최고 — 제설함·열선 보강 근거
           </div>

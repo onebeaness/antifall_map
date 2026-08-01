@@ -14,6 +14,12 @@ TMAP_APP_KEY = os.getenv("TMAP_APP_KEY", "")          # 필수 — POI 검색·�
 VWORLD_API_KEY = os.getenv("VWORLD_API_KEY", "")      # 선택 — 없으면 OSM 폴백
 KWEATHER_API_KEY = os.getenv("KWEATHER_API_KEY", "")  # 선택 — 없으면 Open-Meteo 폴백
 
+# 선택 — SGIS(통계청) 인구·인구밀도·고령화 지표 (없으면 프론트가 목업 표시)
+SGIS_CONSUMER_KEY = os.getenv("SGIS_CONSUMER_KEY", "")
+SGIS_CONSUMER_SECRET = os.getenv("SGIS_CONSUMER_SECRET", "")
+# 선택 — 서울 열린데이터광장 생활인구(유동인구) (서울 지역 한정)
+SEOUL_OPENAPI_KEY = os.getenv("SEOUL_OPENAPI_KEY", "")
+
 # CORS 허용 오리진 (쉼표 구분). 개발 기본값: Next.js dev 서버.
 CORS_ORIGINS = [
     o.strip() for o in os.getenv(

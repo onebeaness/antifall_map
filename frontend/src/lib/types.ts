@@ -78,6 +78,27 @@ export interface WeatherInfo {
   source: string;
 }
 
+/** GET /api/population/dong 응답 항목 (SGIS 총조사 주요지표) */
+export interface DongPopulation {
+  adm_cd: string;
+  adm_nm: string;
+  tot_ppltn: number | null;
+  /** 인구밀도 (명/㎢) */
+  ppltn_dnsty: number | null;
+  avg_age: number | null;
+  /** 노령화지수 (고령인구/유소년인구 × 100) */
+  aged_child_idx: number | null;
+  tot_house: number | null;
+}
+
+/** GET /api/population/floating 응답 (서울 생활인구, 시간대별) */
+export interface FloatingPopulation {
+  adm_cd: string;
+  date: string;
+  hours: number[];
+  values: number[];
+}
+
 /** GET /api/map/config 응답 */
 export interface MapConfig {
   provider: "vworld" | "osm";

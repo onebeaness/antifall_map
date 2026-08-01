@@ -49,7 +49,7 @@ export function SlopeBars({ distances, slopes }: {
         return (
           <rect key={i} x={cx - barW / 2} y={top} width={barW} height={h}
                 fill={slopeColor(s)} rx={1}>
-            <title>{(distances[i + 1] / 1000).toFixed(2)}km · 경사 {s >= 0 ? "+" : ""}{s.toFixed(1)}%</title>
+            <title>{`${(distances[i + 1] / 1000).toFixed(2)}km · 경사 ${s >= 0 ? "+" : ""}${s.toFixed(1)}%`}</title>
           </rect>
         );
       })}

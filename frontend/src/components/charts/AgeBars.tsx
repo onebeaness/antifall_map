@@ -26,7 +26,7 @@ export function AgeBars({ labels, values }: { labels: string[]; values: number[]
           <g key={i}>
             <rect x={cx - barW / 2} y={PAD.top + ih - h} width={barW} height={h}
                   fill="var(--medical-blue)" rx={4}>
-              <title>{labels[i]} · {v.toLocaleString()}명</title>
+              <title>{`${labels[i]} · ${v.toLocaleString()}명`}</title>
             </rect>
             <text x={cx} y={PAD.top + ih - h - 7} textAnchor="middle" fontSize={11.5}
                   fontWeight={700} fill="var(--ink)">

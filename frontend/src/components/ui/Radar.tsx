@@ -50,7 +50,7 @@ export function Radar({ scores, size = 250 }: RadarProps) {
       {dataPts.map(([x, y], i) => (
         <circle key={i} cx={x.toFixed(1)} cy={y.toFixed(1)} r={4}
                 fill={levelColor(scores[axes[i]])} stroke="#fff" strokeWidth={2}>
-          <title>{axes[i]} {scores[axes[i]]}점</title>
+          <title>{`${axes[i]} ${scores[axes[i]]}점`}</title>
         </circle>
       ))}
       {axes.map((name, i) => {
