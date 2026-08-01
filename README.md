@@ -60,7 +60,15 @@ npm run dev                  # http://localhost:3000
 |---|---|---|---|
 | 인구밀도·평균나이·노령화지수 | SGIS 통계청 (`stats/population.json`) | `SGIS_CONSUMER_KEY/SECRET` ([발급](https://sgis.kostat.go.kr/developer)) | 대시보드에 시연용 목업 표시 |
 | 유동인구(시간대별 생활인구) | 서울 열린데이터광장 `SPOP_LOCAL_RESD_DONG` | `SEOUL_OPENAPI_KEY` ([발급](https://data.seoul.go.kr)) — 서울 한정 | 〃 |
+| 보안등 밀도(야간 조명) | 공공데이터포털 전국보안등정보표준데이터 | `DATA_GO_KR_KEY` ([활용신청](https://www.data.go.kr/data/15017320/standard.do)) | 안내 문구 표시 |
+| 기상특보(대설·한파 등) | 기상청 API허브 `wrn_now_data` | `KWEATHER_API_KEY` (기존 날씨 키 재사용) | 배너 미표시 |
+| 행정동 보행환경 위험도 | **팀 분석 산출물** `public/geo/seoul_dong_risk.geojson` (서울 427개 동, 경사·협소·재질) | **불필요** (번들 자산) | — |
 | 로드뷰 | 카카오맵 URL 링크 (`map.kakao.com/link/roadview/…`) | **불필요** | — |
+
+대시보드 지도는 행정동 choropleth(팀 분석 실데이터)이며, 동을 클릭하면
+SGIS 인구지표·서울 생활인구·보안등 밀도가 연계 조회된다.
+⚠️ 보안등 API의 지역 필터 컬럼명(`insttNm`)은 키 발급 후 실호출로 1회 검증 필요
+(`backend/app/services/safety_lights.py` 주석 참고).
 
 로드뷰는 경로 지도(구간·급경사·임의 지점 클릭)와 대시보드(위험 구간 표·마커 팝업)에서
 새 탭으로 열린다. 임베드형이 필요하면 Kakao Maps JS SDK(appkey)로 교체 —

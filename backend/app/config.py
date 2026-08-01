@@ -19,6 +19,8 @@ SGIS_CONSUMER_KEY = os.getenv("SGIS_CONSUMER_KEY", "")
 SGIS_CONSUMER_SECRET = os.getenv("SGIS_CONSUMER_SECRET", "")
 # 선택 — 서울 열린데이터광장 생활인구(유동인구) (서울 지역 한정)
 SEOUL_OPENAPI_KEY = os.getenv("SEOUL_OPENAPI_KEY", "")
+# 선택 — 공공데이터포털 (전국보안등정보표준데이터 등)
+DATA_GO_KR_KEY = os.getenv("DATA_GO_KR_KEY", "")
 
 # CORS 허용 오리진 (쉼표 구분). 개발 기본값: Next.js dev 서버.
 CORS_ORIGINS = [

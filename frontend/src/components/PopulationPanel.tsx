@@ -26,7 +26,15 @@ function weekAgoYYYYMMDD(): string {
   return d.toISOString().slice(0, 10).replace(/-/g, "");
 }
 
-export function PopulationPanel() {
+export interface SelectedDong {
+  name: string;
+  /** SGIS(통계청) 행정구역 코드 */
+  sgisCd: string;
+  /** 생활인구용 행자부 행정동코드 (8자리) */
+  floatCd: string;
+}
+
+export function PopulationPanel({ selected }: { selected?: SelectedDong | null }) {
   const [admCd, setAdmCd] = useState("");
   // 날짜 기본값은 클라이언트에서만 계산 (SSR 프리렌더와의 hydration 불일치 방지)
   const [date, setDate] = useState("");
@@ -35,17 +43,16 @@ export function PopulationPanel() {
   const [floating, setFloating] = useState<FloatingPopulation | null>(null);
   const [mock, setMock] = useState(true); // 초기 상태는 목업 표시
   const [notice, setNotice] = useState<string | null>(
-    "시연용 목업 데이터입니다 — 행정동 코드를 입력하고 조회하면 실데이터로 전환됩니다.");
+    "시연용 목업 데이터입니다 — 지도에서 동을 클릭하거나 행정동 코드를 입력해 조회하면 실데이터로 전환됩니다.");
   const [busy, setBusy] = useState(false);
 
-  const lookup = async () => {
-    if (!admCd.trim()) return;
+  const doLookup = async (sgisCd: string, floatCd: string, dateStr: string) => {
     setBusy(true);
     setNotice(null);
     const msgs: string[] = [];
 
     try {
-      const rows = await getDongPopulation(admCd.trim());
+      const rows = await getDongPopulation(sgisCd);
       if (rows.length > 0) { setDong(rows[0]); setMock(false); }
       else msgs.push("SGIS: 해당 코드의 인구 자료가 없습니다.");
     } catch (e) {
@@ -53,7 +60,7 @@ export function PopulationPanel() {
     }
 
     try {
-      setFloating(await getFloatingPopulation(admCd.trim(), date));
+      setFloating(await getFloatingPopulation(floatCd, dateStr));
       setMock(false);
     } catch (e) {
       setFloating(null);
@@ -62,6 +69,19 @@ export function PopulationPanel() {
 
     if (msgs.length) setNotice(msgs.join(" · "));
     setBusy(false);
+  };
+
+  // 지도에서 동 선택 시 자동 조회
+  useEffect(() => {
+    if (!selected) return;
+    setAdmCd(selected.floatCd);
+    doLookup(selected.sgisCd, selected.floatCd, date || weekAgoYYYYMMDD());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected]);
+
+  const lookup = () => {
+    if (!admCd.trim()) return;
+    doLookup(admCd.trim(), admCd.trim(), date || weekAgoYYYYMMDD());
   };
 
   const d = dong ?? MOCK_DONG;

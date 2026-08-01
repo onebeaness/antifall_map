@@ -99,6 +99,47 @@ export interface FloatingPopulation {
   values: number[];
 }
 
+/** GET /api/weather/warnings 응답 항목 (기상청 특보) */
+export interface WeatherWarning {
+  region_group: string;
+  region: string;
+  effective: string;
+  type_code: string;
+  type: string; // 대설·한파·호우 등
+  level: string;
+  level_name: string; // 주의보/경보
+  relevance: "danger" | "warn" | "info";
+}
+
+/** GET /api/safety/lights 응답 (보안등 밀도) */
+export interface LightsResult {
+  count: number;
+  radius_m: number;
+  scanned: number;
+  total_in_filter: number | null;
+  truncated: boolean;
+  sample: { lat: number; lon: number; addr: string }[];
+}
+
+/** 서울 행정동 보행환경 geojson 속성 (팀 분석 산출물, 번들 자산) */
+export interface DongRiskProps {
+  name: string;
+  sgg: string;
+  adm_cd: string;  // 통계청(SGIS) 코드
+  adm_cd2: string; // 행자부 10자리 — 생활인구는 앞 8자리
+  risk: number | null;       // 환경위험도 0~100
+  slope_idx: number | null;  // 경사 지수 0~100
+  narrow_idx: number | null; // 협소 지수 0~100
+  surface_idx: number | null; // 재질 지수 0~100
+  factor: string | null;     // 주요위험요인 (경사/협소/재질)
+  slope_mean: number | null;
+  slope_max: number | null;
+  steep_ratio: number | null;
+  width_mean: number | null;
+  lat: number;
+  lon: number;
+}
+
 /** GET /api/map/config 응답 */
 export interface MapConfig {
   provider: "vworld" | "osm";

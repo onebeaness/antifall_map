@@ -8,9 +8,11 @@ import { useRouter } from "next/navigation";
 import { Button, Card, KpiCard, NoticeStrip, TextField } from "@/components/ui";
 import { ElevationProfile } from "@/components/charts/ElevationProfile";
 import { SlopeBars } from "@/components/charts/SlopeBars";
-import { analyzeRoute, getMapConfig, getWeather, resolveTileUrl, searchPoi } from "@/lib/api";
+import {
+  analyzeRoute, getMapConfig, getWeather, getWeatherWarnings, resolveTileUrl, searchPoi,
+} from "@/lib/api";
 import { SLOPE_COLORS, SLOPE_LABELS } from "@/lib/geo";
-import type { MapConfig, Poi, RouteResult, WeatherInfo } from "@/lib/types";
+import type { MapConfig, Poi, RouteResult, WeatherInfo, WeatherWarning } from "@/lib/types";
 
 const RouteMap = dynamic(() => import("@/components/RouteMap"), { ssr: false });
 
@@ -97,6 +99,7 @@ export default function RoutePage() {
   const [result, setResult] = useState<RouteResult | null>(null);
   const [weather, setWeather] = useState<WeatherInfo | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<WeatherWarning[]>([]);
   const [mapCfg, setMapCfg] = useState<MapConfig | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -124,6 +127,15 @@ export default function RoutePage() {
   }, [start, date]);
 
   useEffect(() => { fetchWeather(); }, [fetchWeather]);
+
+  // 발효 중 기상특보 — 출발지 주소의 시·도 단위로 필터. 키 없으면(503) 조용히 생략.
+  useEffect(() => {
+    if (!start) { setWarnings([]); return; }
+    const region = (start.address || "").split(" ")[0] || undefined;
+    getWeatherWarnings(region)
+      .then((r) => setWarnings(r.warnings))
+      .catch(() => setWarnings([]));
+  }, [start]);
 
   const analyze = async () => {
     if (!start || !end) return;
@@ -195,6 +207,34 @@ export default function RoutePage() {
       {error && (
         <Card style={{ marginTop: 14, padding: "14px 18px", borderLeft: "5px solid var(--danger)" }}>
           <span style={{ fontSize: 14, color: "var(--danger)", fontWeight: 600 }}>분석 실패: {error}</span>
+        </Card>
+      )}
+
+      {/* 발효 중 기상특보 배너 — 대설·한파는 낙상 직접 위험 */}
+      {warnings.length > 0 && (
+        <Card style={{
+          marginTop: 14, padding: "13px 18px",
+          borderLeft: `5px solid ${warnings.some((w) => w.relevance === "danger") ? "var(--danger)" : "var(--warn)"}`,
+          background: warnings.some((w) => w.relevance === "danger") ? "rgba(214,69,69,.05)" : "rgba(224,168,0,.06)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 13.5, fontWeight: 800 }}>기상특보 발효 중</span>
+            {warnings.slice(0, 4).map((w, i) => (
+              <span key={i} style={{
+                display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700,
+                padding: "3px 10px", borderRadius: 14,
+                color: w.relevance === "danger" ? "var(--danger)" : "var(--warn)",
+                background: w.relevance === "danger" ? "rgba(214,69,69,.12)" : "rgba(224,168,0,.14)",
+              }}>
+                {w.region} {w.type}{w.level_name}
+              </span>
+            ))}
+            <span style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>
+              {warnings.some((w) => w.type_code === "S" || w.type_code === "C")
+                ? "결빙·미끄럼 위험이 큽니다 — 외출을 미루거나 급경사 구간을 피하세요."
+                : "보행 시 주의가 필요합니다."}
+            </span>
+          </div>
         </Card>
       )}
 
