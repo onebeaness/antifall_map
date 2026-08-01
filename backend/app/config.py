@@ -1,0 +1,22 @@
+"""환경변수 설정 — 모든 외부 API 키는 백엔드에만 존재한다 (HANDOFF 3절).
+
+배포중립: .env 파일(python-dotenv) 또는 플랫폼 환경변수 어느 쪽이든 동작.
+"""
+from __future__ import annotations
+
+import os
+
+from dotenv import load_dotenv
+
+load_dotenv()  # backend/.env 로드 (없으면 무시)
+
+TMAP_APP_KEY = os.getenv("TMAP_APP_KEY", "")          # 필수 — POI 검색·경로 탐색
+VWORLD_API_KEY = os.getenv("VWORLD_API_KEY", "")      # 선택 — 없으면 OSM 폴백
+KWEATHER_API_KEY = os.getenv("KWEATHER_API_KEY", "")  # 선택 — 없으면 Open-Meteo 폴백
+
+# CORS 허용 오리진 (쉼표 구분). 개발 기본값: Next.js dev 서버.
+CORS_ORIGINS = [
+    o.strip() for o in os.getenv(
+        "CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
+    ).split(",") if o.strip()
+]

@@ -1,0 +1,144 @@
+/* 안심걸음 디자인 토큰 — 정본(ansim-ui/tokens.css). Pretendard는 CDN 로드,
+ * 오프라인 시 system-ui 폴백. */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css");
+
+:root {
+  --gov-navy: #1E2761;
+  --medical-blue: #0B5394;
+  --bg-slate: #F2F5FB;
+  --bg-white: #FFFFFF;
+  --danger: #D64545;
+  --warn: #E0A800;
+  --good: #2E9E6B;
+  --ink: #1A1D29;
+  --ink-muted: #5B6472;
+  --line: #D6DEEA;
+  --track: #EEF1F6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Pretendard', 'Pretendard Variable', system-ui, sans-serif;
+  background: var(--bg-slate);
+  color: var(--ink);
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 본문 컨테이너 — 데스크톱 1180px, 모바일 768px 브레이크포인트 (IA.md 6절) */
+.container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 40px 48px;
+}
+
+/* 진행 바 (간단 진단 상단) */
+.progress-track {
+  height: 8px;
+  border-radius: 4px;
+  background: #e6ebf2;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--gov-navy);
+  border-radius: 4px;
+  transition: width .25s ease;
+}
+
+/* 스켈레톤 shimmer (허브 미완료 카드) */
+@keyframes shimmer {
+  0% { opacity: .5; }
+  50% { opacity: 1; }
+  100% { opacity: .5; }
+}
+
+.shimmer {
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+/* 랜딩 분할 레이아웃 */
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 560px;
+}
+
+/* 정밀 진단: 좌측 스텝 내비 + 우측 콘텐츠 */
+.precision-layout {
+  display: grid;
+  grid-template-columns: 264px 1fr;
+  gap: 22px;
+  align-items: start;
+}
+
+/* 허브 결과 카드 2열 */
+.hub-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+/* 경로 화면: 지도 + 차트 2열 */
+.route-grid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 18px;
+}
+
+/* 대시보드 2열 */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 18px;
+}
+
+.dash-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 16px 20px 40px;
+  }
+
+  /* 정밀 진단 좌측 스텝 패널 등 데스크톱 전용 요소 (IA.md 6절) */
+  .desktop-only {
+    display: none;
+  }
+
+  .split,
+  .precision-layout,
+  .hub-grid,
+  .route-grid,
+  .dash-grid,
+  .dash-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .split {
+    min-height: 0;
+  }
+}
+
+/* Leaflet 팝업 폰트 통일 */
+.leaflet-container {
+  font-family: inherit;
+}
