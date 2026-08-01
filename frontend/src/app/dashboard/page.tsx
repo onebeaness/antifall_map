@@ -4,7 +4,7 @@
  * 실데이터 연동 지점: ROWS(경사도 분석), MONTHLY(신고 통계), AGE_POP(인구 통계).
  * 팀원 배포용 zip의 gis/*.geojson(행정동 폴리곤)이 향후 연동 자산이다. */
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, KpiCard, NoticeStrip, SignalBadge } from "@/components/ui";
 import { AgeBars } from "@/components/charts/AgeBars";
@@ -41,6 +41,9 @@ export default function DashboardPage() {
   const router = useRouter();
   const [filter, setFilter] = useState<"전체" | "위험" | "주의" | "양호">("전체");
   const [picked, setPicked] = useState<Set<string>>(new Set(ROWS.slice(0, 3).map((r) => r.block)));
+  // Leaflet은 브라우저 전용 — hydration 완료 후에만 마운트 (SSR HTML 불일치 방지)
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const view = filter === "전체" ? ROWS : ROWS.filter((r) => GRADE_LABEL[levelOf(r.score)] === filter);
   const pickedRows = ROWS.filter((r) => picked.has(r.block));
@@ -101,7 +104,7 @@ export default function DashboardPage() {
           <div style={{ fontSize: 14, fontWeight: 800, margin: "4px 4px 10px" }}>
             위험 구간 지도 <span style={{ fontWeight: 500, color: "var(--ink-muted)" }}>(경사도 히트맵 연동)</span>
           </div>
-          <DashboardMap rows={view} />
+          {mounted ? <DashboardMap rows={view} /> : <div style={{ height: 420, borderRadius: 14, background: "var(--track)" }} />}
           <div style={{ display: "flex", gap: 14, alignItems: "center", marginTop: 10, flexWrap: "wrap" }}>
             {(["danger", "warn", "good"] as Level[]).map((g) => (
               <span key={g} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: "var(--ink-muted)" }}>

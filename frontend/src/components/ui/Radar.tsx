@@ -36,7 +36,7 @@ export function Radar({ scores, size = 250 }: RadarProps) {
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
          role="img" aria-label={axes.map((k) => `${k} ${scores[k]}점`).join(", ")}
-         style={{ fontFamily: "inherit", flex: "none" }}>
+         style={{ fontFamily: "inherit", flex: "none", overflow: "visible" }}>
       {gridPolys.map((points, i) => (
         <polygon key={i} points={points} fill="none" stroke="var(--line)" strokeWidth={1} />
       ))}
