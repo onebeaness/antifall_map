@@ -29,8 +29,13 @@ _OSM_TILE = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
 
 @router.get("/config")
 def map_config() -> dict:
-    """V-World 키가 있으면 백엔드 프록시 타일, 없으면 OSM 직접 사용."""
-    if config.VWORLD_API_KEY:
+    """프론트가 쓸 타일 소스.
+
+    기본은 OSM을 브라우저에서 직접 받는다 — 지도 한 화면에 타일이 20장 이상
+    필요해, 무료 인스턴스로 중계하면 지연·유실이 커진다. 국내 상세 지도가
+    필요하면 VWORLD_TILE_PROXY=true 로 프록시 경로를 켠다.
+    """
+    if config.VWORLD_API_KEY and config.VWORLD_TILE_PROXY:
         return {
             "provider": "vworld",
             "tile_url": "/api/map/tile/Base/{z}/{y}/{x}.png",

@@ -87,8 +87,9 @@ export default function DashboardPage() {
 
   const onSelectDong = async (p: DongRiskProps) => {
     setSelectedDong(p);
-    // SGIS는 7자리(통계청), 생활인구는 행자부 10자리의 앞 8자리
-    setPanelSel({ name: p.name, sgisCd: p.adm_cd.slice(0, 7), floatCd: p.adm_cd2.slice(0, 8) });
+    // SGIS는 통계청 코드(자료 없으면 백엔드가 상위 행정구역으로 폴백),
+    // 생활인구는 행자부 10자리의 앞 8자리
+    setPanelSel({ name: p.name, sgisCd: p.adm_cd, floatCd: p.adm_cd2.slice(0, 8) });
     setLights(null);
     setLightsMsg(null);
     try {
@@ -98,6 +99,10 @@ export default function DashboardPage() {
       setLightsMsg(e instanceof Error ? e.message : String(e));
     }
   };
+
+  const tableTitle = filter === "전체"
+    ? "위험 상위 행정동 (위험도순)"
+    : `${filter} 등급 행정동 (위험도순)`;
 
   return (
     <main className="container">
@@ -205,7 +210,12 @@ export default function DashboardPage() {
         </Card>
 
         <Card style={{ padding: 18 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>위험 상위 행정동 (위험도순)</div>
+          <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>
+            {tableTitle}
+            <span style={{ fontWeight: 500, color: "var(--ink-muted)", marginLeft: 6 }}>
+              {topRows.length}곳 표시
+            </span>
+          </div>
           <div style={{ maxHeight: 470, overflow: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
               <thead>

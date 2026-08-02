@@ -94,6 +94,14 @@ export function PopulationPanel({ selected }: { selected?: SelectedDong | null }
     <Card style={{ padding: 18 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
         <div style={{ fontSize: 14, fontWeight: 800 }}>인구 · 유동인구 분석</div>
+        {selected && (
+          <span style={{
+            fontSize: 13, fontWeight: 700, color: "var(--gov-navy)",
+            background: "#f3f5fc", borderRadius: 12, padding: "3px 10px",
+          }}>
+            선택: {selected.name}
+          </span>
+        )}
         <div style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>
           인구밀도·고령화(SGIS, 전국) + 시간대별 생활인구(서울 열린데이터)
         </div>
@@ -132,7 +140,13 @@ export function PopulationPanel({ selected }: { selected?: SelectedDong | null }
                  label="노령화지수" tone={d.aged_child_idx != null && d.aged_child_idx >= 200 ? "danger" : "navy"} />
       </div>
       <div style={{ fontSize: 12.5, color: "var(--ink-muted)", marginTop: 6 }}>
-        {d.adm_nm} 기준{isMockShown ? "" : ` · SGIS 총조사(${floating ? "생활인구 " + floating.date : "주요지표"})`}
+        {isMockShown
+          ? `${d.adm_nm} 기준`
+          : <>
+              <b style={{ color: "var(--ink)" }}>{d.adm_nm}</b> 기준 · SGIS 총조사
+              {selected && d.adm_nm && !d.adm_nm.includes(selected.name.split(" ").pop() ?? "")
+                && " (동 단위 자료가 없어 상위 행정구역으로 조회됨)"}
+            </>}
       </div>
 
       <div style={{ marginTop: 14 }}>

@@ -5,7 +5,9 @@
  * - 정적 자산(_next/static, 아이콘, 매니페스트): 캐시 우선 (불변 해시 자산)
  * - API 요청은 캐시하지 않는다 (진단 결과는 항상 온라인 산출)
  */
-const CACHE = "ansim-shell-v1";
+// 캐시 이름을 바꾸면 activate에서 이전 캐시를 모두 지운다.
+// 배포 구조가 바뀌었을 때(예: 정적 내보내기 전환) 옛 자산이 남지 않도록 올린다.
+const CACHE = "ansim-shell-v2";
 const SHELL = ["/", "/offline", "/manifest.json", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
