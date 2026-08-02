@@ -16,6 +16,8 @@ import math
 
 import requests
 
+from app.utils.secrets import mask_secrets as _safe
+
 URL = "http://api.data.go.kr/openapi/tn_pubr_public_scrty_lmp_api"
 TIMEOUT = 15
 _PER_PAGE = 1000
@@ -59,10 +61,10 @@ def count_lights_near(service_key: str, lat: float, lon: float, radius_m: float,
             resp.raise_for_status()
             data = resp.json()
         except requests.RequestException as e:
-            raise LightsError(f"보안등 API 요청 실패: {e}") from e
+            raise LightsError(f"보안등 API 요청 실패: {_safe(e)}") from e
         except ValueError as e:
             # 키 오류 시 XML 에러 메시지가 내려오는 경우
-            raise LightsError(f"보안등 API 응답 형식 오류(인증키 확인): {resp.text[:200]}") from e
+            raise LightsError(f"보안등 API 응답 형식 오류(인증키 확인): {_safe(resp.text)[:200]}") from e
 
         body = ((data.get("response") or {}).get("body") or {})
         header = ((data.get("response") or {}).get("header") or {})

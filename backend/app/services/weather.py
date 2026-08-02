@@ -14,6 +14,8 @@ import math
 
 import requests
 
+from app.utils.secrets import mask_secrets as _safe
+
 TIMEOUT = 15
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
@@ -153,7 +155,7 @@ def get_kma_daily(api_key: str, lat: float, lon: float, date: datetime.date) -> 
         resp.raise_for_status()
         data = resp.json()
     except (requests.RequestException, ValueError) as e:
-        raise WeatherError(f"기상청 단기예보 조회 실패: {e}") from e
+        raise WeatherError(f"기상청 단기예보 조회 실패: {_safe(e)}") from e
 
     header = (data.get("response") or {}).get("header") or {}
     if header.get("resultCode") != "00":
@@ -243,7 +245,7 @@ def get_open_meteo_daily(lat: float, lon: float, date: datetime.date) -> dict:
         resp.raise_for_status()
         data = resp.json()
     except (requests.RequestException, ValueError) as e:
-        raise WeatherError(f"날씨 조회 실패: {e}") from e
+        raise WeatherError(f"날씨 조회 실패: {_safe(e)}") from e
 
     d = data.get("daily") or {}
     try:

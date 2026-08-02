@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import requests
 
+from app.utils.secrets import mask_secrets as _safe
+
 TIMEOUT = 10
 
 
@@ -47,7 +49,7 @@ def geocode(api_key: str, address: str) -> tuple[float, float] | None:
         resp.raise_for_status()
         data = resp.json()
     except (requests.RequestException, ValueError) as e:
-        raise VWorldError(f"V-World 지오코딩 요청 실패: {e}") from e
+        raise VWorldError(f"V-World 지오코딩 요청 실패: {_safe(e)}") from e
 
     response = data.get("response", {})
     if response.get("status") != "OK":

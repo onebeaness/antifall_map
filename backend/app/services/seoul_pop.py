@@ -14,6 +14,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 import requests
 
+from app.utils.secrets import mask_secrets as _safe
+
 BASE = "http://openapi.seoul.go.kr:8088"
 SERVICE = "SPOP_LOCAL_RESD_DONG"
 TIMEOUT = 10
@@ -28,9 +30,15 @@ def _fetch_hour(api_key: str, date: str, hour: int, adm_cd: str) -> float | None
     try:
         resp = requests.get(url, timeout=TIMEOUT)
         resp.raise_for_status()
+    except requests.RequestException as e:
+        raise SeoulPopError(f"서울 생활인구 조회 실패: {_safe(e)}") from e
+    try:
         data = resp.json()
-    except (requests.RequestException, ValueError) as e:
-        raise SeoulPopError(f"서울 생활인구 조회 실패: {e}") from e
+    except ValueError as e:
+        # 인증키 오류·요청형식 오류 시 XML/HTML이 내려온다 — 원문을 그대로 노출해 진단을 돕는다
+        raise SeoulPopError(
+            f"서울 생활인구 응답이 JSON이 아닙니다 (인증키·요청 형식 확인 필요): "
+            f"{_safe(resp.text)[:300]}") from e
 
     svc = data.get(SERVICE)
     if not svc:

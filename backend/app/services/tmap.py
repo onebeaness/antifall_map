@@ -13,6 +13,8 @@ from dataclasses import dataclass
 
 import requests
 
+from app.utils.secrets import mask_secrets as _safe
+
 BASE_URL = "https://apis.openapi.sk.com"
 TIMEOUT = 10
 
@@ -46,11 +48,11 @@ def _request(method: str, path: str, app_key: str, **kwargs) -> dict:
             method, f"{BASE_URL}{path}", headers=headers, timeout=TIMEOUT, **kwargs
         )
     except requests.RequestException as e:
-        raise TmapError(f"Tmap API 요청 실패: {e}") from e
+        raise TmapError(f"Tmap API 요청 실패: {_safe(e)}") from e
     if resp.status_code == 401 or resp.status_code == 403:
         raise TmapError("Tmap appKey 인증에 실패했습니다. appKey를 확인하세요.")
     if not resp.ok:
-        raise TmapError(f"Tmap API 오류 (HTTP {resp.status_code}): {resp.text[:300]}")
+        raise TmapError(f"Tmap API 오류 (HTTP {resp.status_code}): {_safe(resp.text)[:300]}")
     return resp.json()
 
 

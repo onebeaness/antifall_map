@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import requests
 
+from app.utils.secrets import mask_secrets as _safe
+
 URL = "https://apihub.kma.go.kr/api/typ01/url/wrn_now_data.php"
 TIMEOUT = 15
 
@@ -58,11 +60,19 @@ def get_active_warnings(api_key: str, region: str | None = None) -> list[dict]:
     """현재 발효 중인 특보 목록. region이 주어지면 지역명 부분일치 필터."""
     try:
         resp = requests.get(URL, params={"fe": "f", "authKey": api_key}, timeout=TIMEOUT)
-        resp.raise_for_status()
-        text = resp.text
     except requests.RequestException as e:
-        raise WarningError(f"기상특보 조회 실패: {e}") from e
+        raise WarningError(f"기상특보 조회 실패: {_safe(e)}") from e
 
+    if resp.status_code == 403:
+        # API허브는 키가 유효해도 해당 API를 신청하지 않으면 403을 준다
+        raise WarningError(
+            "기상특보 API 접근이 거부되었습니다(403). apihub.kma.go.kr에 로그인해 "
+            "'특보 현황'(wrn_now_data) API를 활용신청했는지 확인하세요. "
+            f"응답: {_safe(resp.text)[:200]}")
+    if not resp.ok:
+        raise WarningError(f"기상특보 조회 실패(HTTP {resp.status_code}): {_safe(resp.text)[:200]}")
+
+    text = resp.text
     if "auth" in text.lower() and "error" in text.lower():
         raise WarningError("기상청 API허브 인증 실패 — KWEATHER_API_KEY를 확인하세요.")
 

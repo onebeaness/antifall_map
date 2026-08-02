@@ -13,6 +13,8 @@ import time
 
 import requests
 
+from app.utils.secrets import mask_secrets as _safe
+
 BASE = "https://sgisapi.kostat.go.kr/OpenAPI3"
 TIMEOUT = 10
 
@@ -32,7 +34,7 @@ def _authenticate(consumer_key: str, consumer_secret: str) -> str:
         resp.raise_for_status()
         data = resp.json()
     except (requests.RequestException, ValueError) as e:
-        raise SgisError(f"SGIS 인증 실패: {e}") from e
+        raise SgisError(f"SGIS 인증 실패: {_safe(e)}") from e
     if str(data.get("errCd")) != "0":
         raise SgisError(f"SGIS 인증 오류: {data.get('errMsg')} (코드 {data.get('errCd')})")
     token = (data.get("result") or {}).get("accessToken")
@@ -66,7 +68,7 @@ def get_population(consumer_key: str, consumer_secret: str, adm_cd: str,
         resp.raise_for_status()
         data = resp.json()
     except (requests.RequestException, ValueError) as e:
-        raise SgisError(f"SGIS 인구 조회 실패: {e}") from e
+        raise SgisError(f"SGIS 인구 조회 실패: {_safe(e)}") from e
 
     # 토큰 만료(-401) 시 1회 재인증 후 재시도
     if str(data.get("errCd")) == "-401":
@@ -76,7 +78,7 @@ def get_population(consumer_key: str, consumer_secret: str, adm_cd: str,
             resp.raise_for_status()
             data = resp.json()
         except (requests.RequestException, ValueError) as e:
-            raise SgisError(f"SGIS 인구 조회 실패: {e}") from e
+            raise SgisError(f"SGIS 인구 조회 실패: {_safe(e)}") from e
 
     if str(data.get("errCd")) != "0":
         raise SgisError(f"SGIS 오류: {data.get('errMsg')} (코드 {data.get('errCd')})")
