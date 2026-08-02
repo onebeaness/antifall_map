@@ -64,19 +64,26 @@ export function PopulationPanel({ selected }: { selected?: SelectedDong | null }
   // 연속 선택 시 늦게 도착한 이전 요청이 최신 결과를 덮지 않도록 요청 순번 관리
   const seqRef = useRef(0);
 
-  const lookup = useCallback(async (sgisCd: string, floatCd: string, dateStr: string) => {
+  const lookup = useCallback(async (sgisCd: string | null, floatCd: string, dateStr: string) => {
     const seq = ++seqRef.current;
     setBusy(true);
     setNotice(null);
     const msgs: string[] = [];
 
+    // SGIS는 통계청 자체 코드 체계라 행자부 코드를 넘기면 "엉뚱한 지역"이 조회된다
+    // (예: 행자부 11110=종로 vs SGIS 11110=노원). 코드 출처가 확실한
+    // 지도 클릭 경로에서만 조회하고, 수동 입력(행자부 코드)에서는 건너뛴다.
     let nextDong: DongPopulation | null = null;
-    try {
-      const rows = await getDongPopulation(sgisCd);
-      if (rows.length > 0) nextDong = rows[0];
-      else msgs.push("인구지표: 해당 코드의 자료가 없습니다.");
-    } catch (e) {
-      msgs.push(`인구지표(SGIS): ${e instanceof Error ? e.message : e}`);
+    if (sgisCd) {
+      try {
+        const rows = await getDongPopulation(sgisCd);
+        if (rows.length > 0) nextDong = rows[0];
+        else msgs.push("인구지표: 해당 코드의 자료가 없습니다.");
+      } catch (e) {
+        msgs.push(`인구지표(SGIS): ${e instanceof Error ? e.message : e}`);
+      }
+    } else {
+      msgs.push("인구지표(SGIS)는 코드 체계가 달라 지도에서 동을 클릭할 때만 조회됩니다.");
     }
 
     let nextFloating: FloatingPopulation | null = null;
@@ -153,7 +160,7 @@ export function PopulationPanel({ selected }: { selected?: SelectedDong | null }
       {/* 고급: 코드로 직접 조회 */}
       <details style={{ marginTop: 12 }}>
         <summary style={{ fontSize: 12.5, color: "var(--ink-muted)", cursor: "pointer" }}>
-          행정동 코드로 직접 조회
+          행정동 코드로 생활인구 직접 조회 (행자부 8자리)
         </summary>
         <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
           <input placeholder="행정동 코드 (예: 11110515)" value={manualCd} inputMode="numeric"
@@ -164,7 +171,7 @@ export function PopulationPanel({ selected }: { selected?: SelectedDong | null }
                  onChange={(e) => setDate(e.target.value.replace(/\D/g, ""))}
                  style={{ flex: 1, minWidth: 110, height: 42, border: "1.5px solid var(--line)",
                           borderRadius: 10, padding: "0 12px", fontFamily: "inherit", fontSize: 14 }} />
-          <button onClick={() => manualCd && lookup(manualCd, manualCd, date)}
+          <button onClick={() => manualCd && lookup(null, manualCd, date || weekAgoYYYYMMDD())}
                   disabled={busy || !manualCd}
                   style={{ height: 42, padding: "0 16px", borderRadius: 10, cursor: "pointer",
                            fontFamily: "inherit", fontSize: 14, fontWeight: 700,

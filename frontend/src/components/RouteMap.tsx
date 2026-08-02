@@ -54,7 +54,11 @@ function KakaoRouteMap({
         map.addControl(new maps.ZoomControl(), maps.ControlPosition.RIGHT);
 
         const info = new maps.InfoWindow({ removable: true, zIndex: 30 });
-        const openInfo = (title: string, lat: number, lon: number) => {
+        // 카카오 SDK는 Polyline/Circle 클릭이 map click으로도 전파된다 —
+        // 도형 팝업 직후 map click 핸들러가 '선택한 지점'으로 덮어쓰지 않게 시간 가드
+        let shapeClickAt = 0;
+        const openInfo = (title: string, lat: number, lon: number, fromShape = false) => {
+          if (fromShape) shapeClickAt = performance.now();
           info.setContent(mapPopupHtml(title, lat, lon));
           info.setPosition(new maps.LatLng(lat, lon));
           info.open(map);
@@ -73,7 +77,7 @@ function KakaoRouteMap({
           overlays.push(line);
           const label = `경사 ${slopes[i] >= 0 ? "+" : ""}${slopes[i].toFixed(1)}% · 고도 ${elevations[i].toFixed(0)}m`;
           maps.event.addListener(line, "click", () =>
-            openInfo(label, points[i][0], points[i][1]));
+            openInfo(label, points[i][0], points[i][1], true));
         }
 
         // 급경사(9% 이상) 위험 강조 — 반투명 원
@@ -90,7 +94,7 @@ function KakaoRouteMap({
           circle.setMap(map);
           overlays.push(circle);
           maps.event.addListener(circle, "click", () =>
-            openInfo(`급경사 ${slopes[i].toFixed(1)}% 구간`, points[i][0], points[i][1]));
+            openInfo(`급경사 ${slopes[i].toFixed(1)}% 구간`, points[i][0], points[i][1], true));
         }
 
         // 출발/도착 점 마커 (CustomOverlay — 줌과 무관한 고정 크기)
@@ -109,10 +113,12 @@ function KakaoRouteMap({
         dot(points[0], "#2E9E6B", `출발: ${startName}`);
         dot(points[points.length - 1], "#D64545", `도착: ${endName}`);
 
-        // 빈 지도 클릭 → 그 지점 로드뷰 링크
+        // 빈 지도 클릭 → 그 지점 로드뷰 링크 (도형 클릭 직후의 전파 클릭은 무시)
         maps.event.addListener(map, "click",
-          (e: { latLng: { getLat(): number; getLng(): number } }) =>
-            openInfo("선택한 지점", e.latLng.getLat(), e.latLng.getLng()));
+          (e: { latLng: { getLat(): number; getLng(): number } }) => {
+            if (performance.now() - shapeClickAt < 400) return;
+            openInfo("선택한 지점", e.latLng.getLat(), e.latLng.getLng());
+          });
 
         const bounds = new maps.LatLngBounds();
         points.forEach((p) => bounds.extend(ll(p)));
