@@ -25,8 +25,8 @@
    | `TMAP_APP_KEY` | ★ | 경로·POI 기능 정지 |
    | `KWEATHER_API_KEY` | | Open-Meteo 폴백, 특보 미표시 |
    | `VWORLD_API_KEY` | | POI 검색 실패 시 주소 지오코딩 보조 없음 |
-   | `SGIS_CONSUMER_KEY` / `SGIS_CONSUMER_SECRET` | | 인구지표 목업 표시 |
-   | `SEOUL_OPENAPI_KEY` | | 생활인구 목업 표시 |
+   | `SGIS_CONSUMER_KEY` / `SGIS_CONSUMER_SECRET` | | 인구지표 "자료 없음" 표시 |
+   | `SEOUL_OPENAPI_KEY` | | 생활인구·투입 효과 랭킹 미표시 |
    | `DATA_GO_KR_KEY` | | 보안등 밀도 미표시 |
 
 5. 첫 배포는 5~10분 (ML 패키지 설치). 완료되면 `https://ansim-api-xxxx.onrender.com` 형태의 URL이 나온다
@@ -69,13 +69,14 @@ https://<백엔드URL>/docs           ← 전체 API 테스트 UI
 
 3. **Environment variables** 등록:
    ```
-   NEXT_PUBLIC_API_BASE      = https://<1단계에서 받은 백엔드 URL>
-   NEXT_PUBLIC_KAKAO_MAP_KEY = <카카오 JavaScript 키>
-   NODE_VERSION              = 20
+   NEXT_PUBLIC_API_BASE     = https://<1단계에서 받은 백엔드 URL>
+   NEXT_PUBLIC_TMAP_APP_KEY = <티맵 지도용 appKey — 백엔드 키와 별도>
+   NODE_VERSION             = 20
    ```
-   > 배경지도는 카카오맵 단독이다. 키가 없으면 지도 자리에 설정 안내가 표시된다.
-   > 반드시 **JavaScript 키**를 쓰고(**어드민 키 금지** — 서버 전용이라 노출 시 계정 전체가 위험),
-   > 카카오 개발자 앱의 **플랫폼 Web**에 배포 도메인과 `http://localhost:3000`을 등록해야 SDK가 동작한다.
+   > 배경지도는 티맵 단독이다. 키가 없으면 지도 자리에 설정 안내가 표시된다.
+   > ⚠️ 백엔드의 `TMAP_APP_KEY`를 그대로 넣지 말 것 — 프론트 변수는 브라우저에
+   > 노출되므로 제3자가 경로 API 할당량을 소진시킬 수 있다. openapi.sk.com에서
+   > **앱을 하나 더 만들어** 지도 전용 키를 발급하고 서비스 도메인을 등록한다.
    > 두 `NEXT_PUBLIC_*` 값은 빌드 시점에 주입되므로 변경 후에는 재배포가 필요하다.
 4. 배포 완료 후 나온 `https://xxxx.pages.dev` 주소를 **Render의 `CORS_ORIGINS`에 추가**하고 백엔드를 재배포한다 (이 단계를 빠뜨리면 브라우저가 API 호출을 차단한다)
 
@@ -117,5 +118,5 @@ Render 무료의 cold start가 부담되면 백엔드만 옮길 수 있다. 코�
 | 프론트에서 API 호출 실패 (CORS) | `CORS_ORIGINS`에 프론트 도메인 없음 | Render 환경변수에 추가 후 재배포 |
 | 첫 요청만 매우 느림 | 무료 플랜 sleep | 정상. 미리 깨우거나 유료 전환 |
 | `ml_available: false` | 모델 로드 실패 | Render 로그에서 `ml_error` 확인 |
-| 지도 자리에 안내 패널만 보임 | 카카오 JS 키 미설정·도메인 미등록 | `NEXT_PUBLIC_KAKAO_MAP_KEY` 확인 + 카카오 앱 플랫폼 Web에 도메인 등록 후 재배포 |
+| 지도 자리에 안내 패널만 보임 | 티맵 지도 키 미설정·도메인 미등록 | `NEXT_PUBLIC_TMAP_APP_KEY` 확인 + openapi.sk.com 앱에 서비스 도메인 등록 후 재배포 |
 | 500 오류 (메모리) | 동시 요청 과다 | 무료 512MB 한계. 유료 전환 또는 HF Spaces |

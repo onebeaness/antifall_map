@@ -16,7 +16,7 @@ ML 모델·설문 문항은 **ML 확정본(2026-07-15, 팀원 배포용)** 을 �
 
 | 경로 | 내용 |
 |---|---|
-| `frontend/` | Next.js 15 (App Router, TypeScript) PWA. 지도는 카카오맵 SDK |
+| `frontend/` | Next.js 15 (App Router, TypeScript) PWA. 지도는 티맵 JS API |
 | `backend/` | FastAPI + ML 모델 서빙. 도커 불필요 — 순수 Python 앱 |
 | `backend/models/` | ML 확정본 pkl 4종 + `model_utils.py` (predict/explain) |
 | `supabase/schema.sql` | Supabase 전환용 스키마(프로필·진단 이력 + RLS). **아직 미연결** |
@@ -62,7 +62,7 @@ npm run dev                  # http://localhost:3000
 
 | 기능 | 소스 | 키 | 없을 때 |
 |---|---|---|---|
-| **배경지도** (경로·대시보드) | 카카오맵 JS SDK | `NEXT_PUBLIC_KAKAO_MAP_KEY` (**JavaScript 키**, 프론트 빌드 변수) | 지도 자리에 설정 안내 패널 |
+| **배경지도** (경로·대시보드) | 티맵 JS API v2 | `NEXT_PUBLIC_TMAP_APP_KEY` (**백엔드 키와 별도**, 프론트 빌드 변수) | 지도 자리에 설정 안내 패널 |
 | 인구밀도·평균나이·노령화지수 | SGIS 통계청 (`stats/population.json`) | `SGIS_CONSUMER_KEY/SECRET` ([발급](https://sgis.kostat.go.kr/developer)) | "자료 없음" 표시 |
 | 유동인구(시간대별·전역 일평균) | 서울 열린데이터광장 `SPOP_LOCAL_RESD_DONG` | `SEOUL_OPENAPI_KEY` ([발급](https://data.seoul.go.kr)) — 서울 한정 | 효과 랭킹 미표시 |
 | 보안등 밀도(야간 조명) | 공공데이터포털 전국보안등정보표준데이터 | `DATA_GO_KR_KEY` ([활용신청](https://www.data.go.kr/data/15017320/standard.do)) | 안내 문구 표시 |
@@ -70,12 +70,15 @@ npm run dev                  # http://localhost:3000
 | 행정동 보행환경 위험도 | **자체 분석 산출물** `public/geo/seoul_dong_risk.geojson` (서울 427개 동, 경사·협소·재질) | **불필요** (번들 자산) | — |
 | 로드뷰 | 카카오맵 URL 링크 (`map.kakao.com/link/roadview/…`) | **불필요** | — |
 
-### 카카오맵 키 (배경지도 필수)
+### 티맵 지도 키 (배경지도 필수)
 
-1. [developers.kakao.com](https://developers.kakao.com) → 내 애플리케이션 → 앱 생성
-2. **앱 키 → JavaScript 키** 복사 (⚠️ **어드민 키 아님** — 어드민 키는 서버 전용이며 노출 시 계정 전체가 위험)
-3. **플랫폼 → Web**에 `http://localhost:3000` 과 배포 도메인 등록
-4. 프론트 빌드 환경변수 `NEXT_PUBLIC_KAKAO_MAP_KEY`에 넣고 **재배포** (빌드 시점 주입이라 재빌드 필요)
+1. [openapi.sk.com](https://openapi.sk.com) → **새 앱 생성** (백엔드용 앱과 별도)
+2. 그 앱의 appKey를 복사하고, 앱 설정에 서비스 도메인(`http://localhost:3000`, 배포 주소) 등록
+3. 프론트 빌드 환경변수 `NEXT_PUBLIC_TMAP_APP_KEY`에 넣고 **재배포** (빌드 시점 주입)
+
+⚠️ **백엔드의 `TMAP_APP_KEY`를 그대로 쓰지 말 것.** 프론트 변수는 브라우저 번들에
+노출되므로, 백엔드 키를 넣으면 제3자가 그 키로 경로·POI API를 호출해 할당량을
+소진시킬 수 있다. 지도용 앱을 따로 만들어 키를 분리한다.
 
 ### 대시보드 구성
 
@@ -105,7 +108,7 @@ npm run dev                  # http://localhost:3000
 전체 절차는 `DEPLOY.md` 참고.
 
 - **프론트**: 정적 내보내기(`output: "export"`)라 Cloudflare Pages·Vercel에 어댑터 없이 배포.
-  빌드 출력 `out`, 환경변수 `NEXT_PUBLIC_API_BASE`·`NEXT_PUBLIC_KAKAO_MAP_KEY`
+  빌드 출력 `out`, 환경변수 `NEXT_PUBLIC_API_BASE`·`NEXT_PUBLIC_TMAP_APP_KEY`
 - **백엔드**: ML 스택(scikit-learn/lightgbm/shap)은 Cloudflare Workers에서 불가 —
   Render/Railway/Fly.io 등 Python 런타임에 배포. 시작 명령:
   `uvicorn app.main:app --host 0.0.0.0 --port $PORT` (루트 디렉토리 `backend/`)
