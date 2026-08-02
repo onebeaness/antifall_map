@@ -47,7 +47,7 @@ export default function RegisterPage() {
 
   return (
     <main className="container">
-      <div className="hub-grid" style={{ gridTemplateColumns: "1fr 1.05fr", alignItems: "stretch" }}>
+      <div className="register-grid">
         {/* 좌: 브랜드 패널 */}
         <Card variant="panel" style={{ padding: "44px 40px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 22 }}>

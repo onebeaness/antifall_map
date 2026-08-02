@@ -114,6 +114,28 @@ a {
   gap: 18px;
 }
 
+/* 대시보드 '선택 행정동 상세' — 위험 프로필 | 인구 패널.
+ * 열 비율은 인라인 스타일이 아니라 여기서만 지정한다 —
+ * 인라인 grid-template-columns는 아래 768px 미디어쿼리를 무효화한다. */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 20px;
+}
+
+.detail-side {
+  border-left: 1px solid var(--line);
+  padding-left: 20px;
+}
+
+/* 등록 화면 — 브랜드 패널 | 폼 */
+.register-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.05fr;
+  gap: 18px;
+  align-items: stretch;
+}
+
 @media (max-width: 768px) {
   .container {
     padding: 16px 20px 40px;
@@ -129,8 +151,18 @@ a {
   .hub-grid,
   .route-grid,
   .dash-grid,
-  .dash-grid-2 {
+  .dash-grid-2,
+  .detail-grid,
+  .register-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* 세로 스택에서는 좌우 구분선 대신 위아래 구분선 */
+  .detail-side {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
   }
 
   .split {

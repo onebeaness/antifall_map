@@ -1,25 +1,28 @@
 "use client";
 
-/** 인구 · 유동인구 분석 패널 (B2G 대시보드).
- * - 인구밀도·평균나이·노령화지수: SGIS 총조사 주요지표 (전국)
- * - 시간대별 생활인구(유동인구): 서울 열린데이터광장 (서울 한정)
- * 백엔드에 키가 없으면(503) 시연용 목업으로 폴백하고 그 사실을 표시한다.
+/** 선택한 행정동의 인구 지표 + 시간대별 생활인구.
+ *
+ * - 인구밀도·평균나이·노령화지수: SGIS 총조사 (전국)
+ * - 시간대별 생활인구: 서울 열린데이터광장 (서울 한정)
+ *
+ * 대시보드의 '선택 행정동 상세' 카드 안에 들어가는 조각이라 자체 제목을 두지
+ * 않는다. 키가 없거나 조회에 실패하면 시연용 목업으로 대체하고 그 사실을 밝힌다.
  */
-import { useEffect, useState } from "react";
-import { Button, Card, KpiCard, TextField } from "@/components/ui";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { TrendLine } from "@/components/charts/TrendLine";
 import { getDongPopulation, getFloatingPopulation } from "@/lib/api";
 import type { DongPopulation, FloatingPopulation } from "@/lib/types";
 
 /** 시연용 목업 — 도심 행정동의 전형적 생활인구 곡선(명) */
 const MOCK_DONG: DongPopulation = {
-  adm_cd: "-", adm_nm: "본오동 (시연용 목업)",
+  adm_cd: "-", adm_nm: "시연용 목업",
   tot_ppltn: 38420, ppltn_dnsty: 14980, avg_age: 47.2, aged_child_idx: 212.4, tot_house: 16750,
 };
 const MOCK_FLOATING = [
   9200, 8600, 8300, 8200, 8400, 9100, 10800, 13500, 15800, 16400, 16100, 16600,
   17100, 16800, 16300, 16100, 16500, 17400, 16900, 15200, 13400, 12100, 10900, 9800,
 ];
+const HOUR_LABELS = Array.from({ length: 24 }, (_, h) => `${h}시`);
 
 function weekAgoYYYYMMDD(): string {
   const d = new Date(Date.now() - 7 * 86400_000);
@@ -34,132 +37,142 @@ export interface SelectedDong {
   floatCd: string;
 }
 
+function Metric({ label, value, tone }: { label: string; value: string; tone?: string }) {
+  return (
+    <div>
+      <div style={{ fontSize: 12, color: "var(--ink-muted)" }}>{label}</div>
+      <div style={{ fontSize: 19, fontWeight: 800, color: tone ?? "var(--ink)", marginTop: 2 }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
 export function PopulationPanel({ selected }: { selected?: SelectedDong | null }) {
-  const [admCd, setAdmCd] = useState("");
-  // 날짜 기본값은 클라이언트에서만 계산 (SSR 프리렌더와의 hydration 불일치 방지)
+  const [manualCd, setManualCd] = useState("");
+  // 날짜 기본값은 클라이언트에서만 계산 (정적 HTML에 빌드 날짜가 박히지 않도록).
+  // 자동 조회는 ref로 읽어, 날짜 타이핑이 재조회를 유발하지 않게 한다.
   const [date, setDate] = useState("");
+  const dateRef = useRef("");
   useEffect(() => { setDate((d) => d || weekAgoYYYYMMDD()); }, []);
+  useEffect(() => { dateRef.current = date; }, [date]);
+
   const [dong, setDong] = useState<DongPopulation | null>(null);
   const [floating, setFloating] = useState<FloatingPopulation | null>(null);
-  const [mock, setMock] = useState(true); // 초기 상태는 목업 표시
-  const [notice, setNotice] = useState<string | null>(
-    "시연용 목업 데이터입니다 — 지도에서 동을 클릭하거나 행정동 코드를 입력해 조회하면 실데이터로 전환됩니다.");
+  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // 연속 선택 시 늦게 도착한 이전 요청이 최신 결과를 덮지 않도록 요청 순번 관리
+  const seqRef = useRef(0);
 
-  const doLookup = async (sgisCd: string, floatCd: string, dateStr: string) => {
+  const lookup = useCallback(async (sgisCd: string, floatCd: string, dateStr: string) => {
+    const seq = ++seqRef.current;
     setBusy(true);
     setNotice(null);
     const msgs: string[] = [];
 
+    let nextDong: DongPopulation | null = null;
     try {
       const rows = await getDongPopulation(sgisCd);
-      if (rows.length > 0) { setDong(rows[0]); setMock(false); }
-      else msgs.push("SGIS: 해당 코드의 인구 자료가 없습니다.");
+      if (rows.length > 0) nextDong = rows[0];
+      else msgs.push("인구지표: 해당 코드의 자료가 없습니다.");
     } catch (e) {
-      msgs.push(`SGIS 인구지표: ${e instanceof Error ? e.message : e}`);
+      msgs.push(`인구지표(SGIS): ${e instanceof Error ? e.message : e}`);
     }
 
+    let nextFloating: FloatingPopulation | null = null;
     try {
-      setFloating(await getFloatingPopulation(floatCd, dateStr));
-      setMock(false);
+      nextFloating = await getFloatingPopulation(floatCd, dateStr);
     } catch (e) {
-      setFloating(null);
       msgs.push(`생활인구(서울 한정): ${e instanceof Error ? e.message : e}`);
     }
 
-    if (msgs.length) setNotice(msgs.join(" · "));
+    if (seq !== seqRef.current) return; // 더 새로운 요청이 이미 나감 — 이 응답은 폐기
+    setDong(nextDong);
+    setFloating(nextFloating);
+    setNotice(msgs.length ? msgs.join(" · ") : null);
     setBusy(false);
-  };
+  }, []);
 
-  // 지도에서 동 선택 시 자동 조회
+  // 지도에서 동을 선택하면 자동 조회 (날짜 변경은 재조회 트리거가 아님)
   useEffect(() => {
     if (!selected) return;
-    setAdmCd(selected.floatCd);
-    doLookup(selected.sgisCd, selected.floatCd, date || weekAgoYYYYMMDD());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected]);
-
-  const lookup = () => {
-    if (!admCd.trim()) return;
-    doLookup(admCd.trim(), admCd.trim(), date || weekAgoYYYYMMDD());
-  };
+    setManualCd(selected.floatCd);
+    lookup(selected.sgisCd, selected.floatCd, dateRef.current || weekAgoYYYYMMDD());
+  }, [selected, lookup]);
 
   const d = dong ?? MOCK_DONG;
   const values = floating?.values ?? MOCK_FLOATING;
-  const isMockShown = mock || (!dong && !floating);
+  const isMockPop = dong == null;
+  const isMockFloat = floating == null;
   const peak = Math.max(...values);
   const peakHour = values.indexOf(peak);
 
   return (
-    <Card style={{ padding: 18 }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-        <div style={{ fontSize: 14, fontWeight: 800 }}>인구 · 유동인구 분석</div>
-        {selected && (
-          <span style={{
-            fontSize: 13, fontWeight: 700, color: "var(--gov-navy)",
-            background: "#f3f5fc", borderRadius: 12, padding: "3px 10px",
-          }}>
-            선택: {selected.name}
-          </span>
-        )}
-        <div style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>
-          인구밀도·고령화(SGIS, 전국) + 시간대별 생활인구(서울 열린데이터)
-        </div>
+    <div>
+      {/* 인구 지표 */}
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
+        <span style={{ fontSize: 13, fontWeight: 800 }}>인구 지표</span>
+        <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>
+          {busy ? "조회 중..." : isMockPop ? "시연용 목업" : `SGIS · ${d.adm_nm}`}
+        </span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+        <Metric label="인구밀도 (명/㎢)"
+                value={d.ppltn_dnsty != null ? Math.round(d.ppltn_dnsty).toLocaleString() : "—"}
+                tone="var(--medical-blue)" />
+        <Metric label="총인구 (명)"
+                value={d.tot_ppltn != null ? d.tot_ppltn.toLocaleString() : "—"} />
+        <Metric label="평균나이 (세)" value={d.avg_age != null ? `${d.avg_age}` : "—"}
+                tone="var(--warn)" />
+        <Metric label="노령화지수" value={d.aged_child_idx != null ? `${d.aged_child_idx}` : "—"}
+                tone={d.aged_child_idx != null && d.aged_child_idx >= 200 ? "var(--danger)" : undefined} />
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
-        <div style={{ flex: 2, minWidth: 180 }}>
-          <TextField label="행정동 코드" placeholder="예) 11110515 (서울 종로구 청운효자동)"
-                     value={admCd} inputMode="numeric"
-                     onChange={(e) => setAdmCd(e.target.value.replace(/\D/g, ""))} />
-        </div>
-        <div style={{ flex: 1, minWidth: 130 }}>
-          <TextField label="기준일 (YYYYMMDD)" value={date} inputMode="numeric" maxLength={8}
-                     onChange={(e) => setDate(e.target.value.replace(/\D/g, ""))} />
-        </div>
-        <Button onClick={lookup} disabled={busy || !admCd.trim()} style={{ minHeight: 56 }}>
-          {busy ? "조회 중..." : "조회"}
-        </Button>
+      {/* 시간대별 생활인구 */}
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, margin: "18px 0 6px" }}>
+        <span style={{ fontSize: 13, fontWeight: 800 }}>시간대별 생활인구</span>
+        <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>
+          {isMockFloat ? "시연용 목업" : `서울 열린데이터 · ${floating?.date}`}
+        </span>
+      </div>
+      <TrendLine labels={HOUR_LABELS} values={values} unit="명" ariaLabel="시간대별 생활인구" />
+      <div style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>
+        피크 {peakHour}시 · {Math.round(peak).toLocaleString()}명 —
+        결빙 새벽·피크 통행 시간대의 안전 순찰 배치 근거
       </div>
 
       {notice && (
         <div style={{
-          fontSize: 12.5, color: "var(--ink-muted)", marginTop: 10,
-          background: "var(--bg-slate)", borderRadius: 10, padding: "9px 12px",
+          fontSize: 12, color: "var(--ink-muted)", marginTop: 10,
+          background: "var(--bg-slate)", borderRadius: 8, padding: "8px 11px",
         }}>
           {notice}
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-        <KpiCard value={d.ppltn_dnsty != null ? `${Math.round(d.ppltn_dnsty).toLocaleString()}` : "—"}
-                 label="인구밀도 (명/㎢)" tone="blue" />
-        <KpiCard value={d.tot_ppltn != null ? d.tot_ppltn.toLocaleString() : "—"} label="총인구 (명)" />
-        <KpiCard value={d.avg_age != null ? `${d.avg_age}` : "—"} label="평균나이 (세)" tone="warn" />
-        <KpiCard value={d.aged_child_idx != null ? `${d.aged_child_idx}` : "—"}
-                 label="노령화지수" tone={d.aged_child_idx != null && d.aged_child_idx >= 200 ? "danger" : "navy"} />
-      </div>
-      <div style={{ fontSize: 12.5, color: "var(--ink-muted)", marginTop: 6 }}>
-        {isMockShown
-          ? `${d.adm_nm} 기준`
-          : <>
-              <b style={{ color: "var(--ink)" }}>{d.adm_nm}</b> 기준 · SGIS 총조사
-              {selected && d.adm_nm && !d.adm_nm.includes(selected.name.split(" ").pop() ?? "")
-                && " (동 단위 자료가 없어 상위 행정구역으로 조회됨)"}
-            </>}
-      </div>
-
-      <div style={{ marginTop: 14 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 800, marginBottom: 6 }}>
-          시간대별 생활인구 {isMockShown && <span style={{ fontWeight: 500, color: "var(--ink-muted)" }}>(시연용 목업)</span>}
+      {/* 고급: 코드로 직접 조회 */}
+      <details style={{ marginTop: 12 }}>
+        <summary style={{ fontSize: 12.5, color: "var(--ink-muted)", cursor: "pointer" }}>
+          행정동 코드로 직접 조회
+        </summary>
+        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <input placeholder="행정동 코드 (예: 11110515)" value={manualCd} inputMode="numeric"
+                 onChange={(e) => setManualCd(e.target.value.replace(/\D/g, ""))}
+                 style={{ flex: 2, minWidth: 150, height: 42, border: "1.5px solid var(--line)",
+                          borderRadius: 10, padding: "0 12px", fontFamily: "inherit", fontSize: 14 }} />
+          <input placeholder="YYYYMMDD" value={date} inputMode="numeric" maxLength={8}
+                 onChange={(e) => setDate(e.target.value.replace(/\D/g, ""))}
+                 style={{ flex: 1, minWidth: 110, height: 42, border: "1.5px solid var(--line)",
+                          borderRadius: 10, padding: "0 12px", fontFamily: "inherit", fontSize: 14 }} />
+          <button onClick={() => manualCd && lookup(manualCd, manualCd, date)}
+                  disabled={busy || !manualCd}
+                  style={{ height: 42, padding: "0 16px", borderRadius: 10, cursor: "pointer",
+                           fontFamily: "inherit", fontSize: 14, fontWeight: 700,
+                           border: "none", background: "var(--gov-navy)", color: "#fff" }}>
+            조회
+          </button>
         </div>
-        <TrendLine labels={Array.from({ length: 24 }, (_, h) => `${h}시`)}
-                   values={values} unit="명" ariaLabel="시간대별 생활인구" />
-        <div style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>
-          피크 {peakHour}시 · {Math.round(peak).toLocaleString()}명 —
-          고위험 보행 시간대(결빙 새벽·피크 통행)의 안전 순찰 배치 근거
-        </div>
-      </div>
-    </Card>
+      </details>
+    </div>
   );
 }
