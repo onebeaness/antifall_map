@@ -52,15 +52,20 @@ https://<백엔드URL>/docs           ← 전체 API 테스트 UI
 
 ## 2. 프론트엔드 — Cloudflare Pages
 
-1. [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages → Create → Pages** → GitHub 연동
+프론트는 **정적 내보내기**(`next.config.mjs`의 `output: "export"`)라서 서버 런타임이
+필요 없다. Next.js 어댑터(`@opennextjs/cloudflare` 등) 없이 정적 파일만 올리면 된다.
+
+1. [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages** →
+   **Create** → **Pages** 탭 → **Connect to Git**
+   > 기본 화면이 Workers 생성으로 열리면, 아래쪽 **"Looking to deploy Pages?"** 링크로 이동한다.
 2. 저장소·브랜치 선택 후 빌드 설정:
 
    | 항목 | 값 |
    |---|---|
-   | Framework preset | Next.js |
+   | Framework preset | `Next.js (Static HTML Export)` — 없으면 `None` |
    | Root directory | `frontend` |
    | Build command | `npm run build` |
-   | Build output | `.next` |
+   | Build output directory | **`out`** |
 
 3. **Environment variables**에 백엔드 주소 등록:
    ```
