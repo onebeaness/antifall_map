@@ -20,9 +20,11 @@ services:
       - key: PYTHON_VERSION
         value: "3.12.9" # ML 휠 호환성 확인된 버전
 
-      # 프론트 배포 후 실제 도메인으로 교체 (쉼표 구분)
+      # 프론트 도메인 (쉼표 구분). 대시보드에서 직접 관리한다 —
+      # 여기에 value를 적으면 Blueprint가 sync될 때마다 그 값으로 덮어써서,
+      # 대시보드에 넣어둔 배포 도메인이 사라진다.
       - key: CORS_ORIGINS
-        value: http://localhost:3000
+        sync: false
 
       # ↓ 값은 Render 대시보드 Environment 탭에서 입력 (저장소에 노출 금지)
       - key: TMAP_APP_KEY

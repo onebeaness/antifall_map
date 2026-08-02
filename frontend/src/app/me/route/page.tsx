@@ -95,7 +95,10 @@ export default function RoutePage() {
   const [start, setStart] = useState<Poi | null>(null);
   const [end, setEnd] = useState<Poi | null>(null);
   const [mode, setMode] = useState<"pedestrian" | "car">("pedestrian");
-  const [date, setDate] = useState(todayISO());
+  // 정적 내보내기에서는 HTML이 빌드 시점에 만들어진다. 여기서 오늘 날짜를 바로
+  // 넣으면 '빌드한 날'이 HTML에 박혀 hydration 불일치가 생기므로, 마운트 후 채운다.
+  const [date, setDate] = useState("");
+  useEffect(() => { setDate((d) => d || todayISO()); }, []);
   const [result, setResult] = useState<RouteResult | null>(null);
   const [weather, setWeather] = useState<WeatherInfo | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
