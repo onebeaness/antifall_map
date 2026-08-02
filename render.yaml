@@ -29,6 +29,9 @@ services:
         sync: false
       - key: VWORLD_API_KEY
         sync: false
+      # V-World 인증키에 등록한 사용URL (프론트 도메인). 없으면 타일이 OSM으로 폴백된다
+      - key: VWORLD_REFERER
+        sync: false
       - key: KWEATHER_API_KEY
         sync: false
       - key: SGIS_CONSUMER_KEY

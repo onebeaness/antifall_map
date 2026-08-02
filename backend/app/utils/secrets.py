@@ -16,12 +16,13 @@ _QUERY_KEY = re.compile(
     re.IGNORECASE,
 )
 
-# 경로에 키가 들어가는 형태:
-#   http://openapi.seoul.go.kr:8088/{KEY}/json/...
-#   https://api.vworld.kr/req/wmts/1.0.0/{KEY}/Base/...
+# 경로에 키가 들어가는 형태. requests 예외는 호스트를 따로 떼고 경로만 싣는
+# 경우가 있어(url: /{KEY}/json/...), 호스트 없이도 매칭되도록 작성한다.
+#   http://openapi.seoul.go.kr:8088/{KEY}/json/...  ·  /{KEY}/json/...
+#   https://api.vworld.kr/req/wmts/1.0.0/{KEY}/...  ·  /req/wmts/1.0.0/{KEY}/...
 _PATH_KEYS = (
-    re.compile(r"(openapi\.seoul\.go\.kr(?::\d+)?/)([^/\s]+)(/)", re.IGNORECASE),
-    re.compile(r"(api\.vworld\.kr/req/wmts/[\d.]+/)([^/\s]+)(/)", re.IGNORECASE),
+    re.compile(r"(/)([^/\s]+)(/(?:json|xml)/)", re.IGNORECASE),
+    re.compile(r"(/req/wmts/[\d.]+/)([^/\s]+)(/)", re.IGNORECASE),
 )
 
 

@@ -12,6 +12,9 @@ load_dotenv()  # backend/.env 로드 (없으면 무시)
 
 TMAP_APP_KEY = os.getenv("TMAP_APP_KEY", "")          # 필수 — POI 검색·경로 탐색
 VWORLD_API_KEY = os.getenv("VWORLD_API_KEY", "")      # 선택 — 없으면 OSM 폴백
+# V-World는 인증키에 등록된 도메인을 Referer로 검증한다. 타일 프록시는 서버에서
+# 호출하므로 브라우저 Referer가 없어, 등록한 사용URL을 여기에 넣어 헤더로 보낸다.
+VWORLD_REFERER = os.getenv("VWORLD_REFERER", "")
 KWEATHER_API_KEY = os.getenv("KWEATHER_API_KEY", "")  # 선택 — 없으면 Open-Meteo 폴백
 
 # 선택 — SGIS(통계청) 인구·인구밀도·고령화 지표 (없으면 프론트가 목업 표시)
