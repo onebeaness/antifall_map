@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import config
-from app.routers import assess, map_tile, poi, population, route, safety, weather
+from app.routers import assess, poi, population, route, safety, weather
 from app.services import fall_model
 
 app = FastAPI(
@@ -30,7 +30,6 @@ app.include_router(assess.router, prefix="/api/assess", tags=["assess"])
 app.include_router(poi.router, prefix="/api", tags=["poi"])
 app.include_router(route.router, prefix="/api", tags=["route"])
 app.include_router(weather.router, prefix="/api", tags=["weather"])
-app.include_router(map_tile.router, prefix="/api/map", tags=["map"])
 app.include_router(population.router, prefix="/api", tags=["population"])
 app.include_router(safety.router, prefix="/api", tags=["safety"])
 

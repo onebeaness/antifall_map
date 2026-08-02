@@ -2,8 +2,8 @@
  * 모든 외부 API 키(Tmap/V-World/기상청)는 백엔드에만 존재한다 (HANDOFF 3절).
  */
 import type {
-  Answers, AssessResult, DongPopulation, FloatingPopulation, LightsResult,
-  MapConfig, Poi, RouteResult, WeatherInfo, WeatherWarning,
+  Answers, AssessResult, CitywideFloating, DongPopulation, FloatingPopulation,
+  LightsResult, Poi, RouteResult, WeatherInfo, WeatherWarning,
 } from "./types";
 
 export const API_BASE =
@@ -79,8 +79,6 @@ export const analyzeRoute = (
 export const getWeather = (lat: number, lon: number, date: string) =>
   request<WeatherInfo>(`/api/weather?lat=${lat}&lon=${lon}&date=${date}`);
 
-export const getMapConfig = () => request<MapConfig>("/api/map/config");
-
 /** SGIS 인구·인구밀도·고령화 지표 (키 미설정 시 503) */
 export const getDongPopulation = (admCd: string, lowSearch: "0" | "1" = "0") =>
   request<DongPopulation[]>(`/api/population/dong?adm_cd=${admCd}&low_search=${lowSearch}`);
@@ -100,6 +98,6 @@ export const getLightsNear = (lat: number, lon: number, radiusM = 500, insttNm?:
     `/api/safety/lights?lat=${lat}&lon=${lon}&radius_m=${radiusM}` +
     (insttNm ? `&instt_nm=${encodeURIComponent(insttNm)}` : ""));
 
-/** 프록시 타일 URL을 절대 주소로 변환 (V-World 프록시는 백엔드 기준 상대경로) */
-export const resolveTileUrl = (cfg: MapConfig): string =>
-  cfg.tile_url.startsWith("/") ? `${API_BASE}${cfg.tile_url}` : cfg.tile_url;
+/** 서울 전역 행정동별 일평균 생활인구 (효과 기대 지역 랭킹용) */
+export const getCitywideFloating = (date: string) =>
+  request<CitywideFloating>(`/api/population/floating/citywide?date=${date}`);

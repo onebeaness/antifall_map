@@ -140,10 +140,9 @@ export interface DongRiskProps {
   lon: number;
 }
 
-/** GET /api/map/config 응답 */
-export interface MapConfig {
-  provider: "vworld" | "osm";
-  tile_url: string;
-  attribution: string;
-  max_zoom: number;
+/** GET /api/population/floating/citywide 응답 — 서울 전역 일평균 생활인구 */
+export interface CitywideFloating {
+  date: string;
+  hours_used: number;
+  dongs: Record<string, { avg: number; peak: number; peak_hour: number }>;
 }

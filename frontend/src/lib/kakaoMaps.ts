@@ -1,11 +1,13 @@
 /** 카카오맵 JS SDK 로더.
  *
- * NEXT_PUBLIC_KAKAO_MAP_KEY(JavaScript 키)가 있으면 카카오 배경지도를 쓰고,
- * 없거나 SDK 로드에 실패하면 각 지도 컴포넌트가 Leaflet + OSM으로 폴백한다.
+ * 배경지도는 카카오맵 단독이다. NEXT_PUBLIC_KAKAO_MAP_KEY(JavaScript 키)가
+ * 없거나 SDK 로드에 실패하면 각 지도 컴포넌트가 안내 패널을 대신 표시한다.
  *
- * JS 키는 카카오가 도메인 잠금(플랫폼 Web 등록)으로 보호하는 클라이언트용
- * 키라서 프론트에 노출해도 설계상 문제가 없다 — 등록: developers.kakao.com
- * → 내 애플리케이션 → 플랫폼 Web에 http://localhost:3000 과 배포 도메인 추가.
+ * ⚠️ 여기 넣는 값은 반드시 **JavaScript 키**다. 어드민 키는 서버 전용이며
+ * 프론트에 노출되면 계정 전체가 위험해진다.
+ * JS 키는 도메인 잠금(플랫폼 Web 등록)으로 보호되는 클라이언트용 키라
+ * 노출을 전제로 설계돼 있다 — 등록: developers.kakao.com → 내 애플리케이션
+ * → 플랫폼 Web에 http://localhost:3000 과 배포 도메인 추가.
  */
 
 export const KAKAO_MAP_KEY = process.env.NEXT_PUBLIC_KAKAO_MAP_KEY ?? "";

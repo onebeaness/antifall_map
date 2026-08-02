@@ -9,10 +9,10 @@ import { Button, Card, KpiCard, NoticeStrip, TextField } from "@/components/ui";
 import { ElevationProfile } from "@/components/charts/ElevationProfile";
 import { SlopeBars } from "@/components/charts/SlopeBars";
 import {
-  analyzeRoute, getMapConfig, getWeather, getWeatherWarnings, resolveTileUrl, searchPoi,
+  analyzeRoute, getWeather, getWeatherWarnings, searchPoi,
 } from "@/lib/api";
 import { SLOPE_COLORS, SLOPE_LABELS } from "@/lib/geo";
-import type { MapConfig, Poi, RouteResult, WeatherInfo, WeatherWarning } from "@/lib/types";
+import type { Poi, RouteResult, WeatherInfo, WeatherWarning } from "@/lib/types";
 
 const RouteMap = dynamic(() => import("@/components/RouteMap"), { ssr: false });
 
@@ -103,19 +103,8 @@ export default function RoutePage() {
   const [weather, setWeather] = useState<WeatherInfo | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<WeatherWarning[]>([]);
-  const [mapCfg, setMapCfg] = useState<MapConfig | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    getMapConfig().then(setMapCfg).catch(() =>
-      setMapCfg({
-        provider: "osm",
-        tile_url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-        attribution: "© OpenStreetMap contributors",
-        max_zoom: 19,
-      }));
-  }, []);
 
   // 출발지·날짜가 정해지면 날씨 자동 조회 (원본 동작)
   const fetchWeather = useCallback(async () => {
@@ -297,7 +286,7 @@ export default function RoutePage() {
       )}
 
       {/* 분석 결과 */}
-      {result && mapCfg && (
+      {result && (
         <>
           <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
             <KpiCard value={`${(result.total_distance_m / 1000).toFixed(2)} km`} label="총 거리" />
@@ -316,9 +305,6 @@ export default function RoutePage() {
                 elevations={result.elevations}
                 startName={start?.name ?? "출발지"}
                 endName={end?.name ?? "도착지"}
-                tileUrl={resolveTileUrl(mapCfg)}
-                attribution={mapCfg.attribution}
-                maxZoom={mapCfg.max_zoom}
               />
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12, alignItems: "center" }}>
                 <span style={{ fontSize: 13, fontWeight: 800 }}>경사도 범례</span>

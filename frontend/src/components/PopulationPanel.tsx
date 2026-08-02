@@ -13,15 +13,6 @@ import { TrendLine } from "@/components/charts/TrendLine";
 import { getDongPopulation, getFloatingPopulation } from "@/lib/api";
 import type { DongPopulation, FloatingPopulation } from "@/lib/types";
 
-/** 시연용 목업 — 도심 행정동의 전형적 생활인구 곡선(명) */
-const MOCK_DONG: DongPopulation = {
-  adm_cd: "-", adm_nm: "시연용 목업",
-  tot_ppltn: 38420, ppltn_dnsty: 14980, avg_age: 47.2, aged_child_idx: 212.4, tot_house: 16750,
-};
-const MOCK_FLOATING = [
-  9200, 8600, 8300, 8200, 8400, 9100, 10800, 13500, 15800, 16400, 16100, 16600,
-  17100, 16800, 16300, 16100, 16500, 17400, 16900, 15200, 13400, 12100, 10900, 9800,
-];
 const HOUR_LABELS = Array.from({ length: 24 }, (_, h) => `${h}시`);
 
 function weekAgoYYYYMMDD(): string {
@@ -107,12 +98,9 @@ export function PopulationPanel({ selected }: { selected?: SelectedDong | null }
     lookup(selected.sgisCd, selected.floatCd, dateRef.current || weekAgoYYYYMMDD());
   }, [selected, lookup]);
 
-  const d = dong ?? MOCK_DONG;
-  const values = floating?.values ?? MOCK_FLOATING;
-  const isMockPop = dong == null;
-  const isMockFloat = floating == null;
-  const peak = Math.max(...values);
-  const peakHour = values.indexOf(peak);
+  const values = floating?.values;
+  const peak = values ? Math.max(...values) : 0;
+  const peakHour = values ? values.indexOf(peak) : 0;
 
   return (
     <div>
@@ -120,33 +108,47 @@ export function PopulationPanel({ selected }: { selected?: SelectedDong | null }
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
         <span style={{ fontSize: 13, fontWeight: 800 }}>인구 지표</span>
         <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>
-          {busy ? "조회 중..." : isMockPop ? "시연용 목업" : `SGIS · ${d.adm_nm}`}
+          {busy ? "조회 중..." : dong ? `SGIS · ${dong.adm_nm}` : "자료 없음"}
         </span>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-        <Metric label="인구밀도 (명/㎢)"
-                value={d.ppltn_dnsty != null ? Math.round(d.ppltn_dnsty).toLocaleString() : "—"}
-                tone="var(--medical-blue)" />
-        <Metric label="총인구 (명)"
-                value={d.tot_ppltn != null ? d.tot_ppltn.toLocaleString() : "—"} />
-        <Metric label="평균나이 (세)" value={d.avg_age != null ? `${d.avg_age}` : "—"}
-                tone="var(--warn)" />
-        <Metric label="노령화지수" value={d.aged_child_idx != null ? `${d.aged_child_idx}` : "—"}
-                tone={d.aged_child_idx != null && d.aged_child_idx >= 200 ? "var(--danger)" : undefined} />
-      </div>
+      {dong ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+          <Metric label="인구밀도 (명/㎢)"
+                  value={dong.ppltn_dnsty != null ? Math.round(dong.ppltn_dnsty).toLocaleString() : "—"}
+                  tone="var(--medical-blue)" />
+          <Metric label="총인구 (명)"
+                  value={dong.tot_ppltn != null ? dong.tot_ppltn.toLocaleString() : "—"} />
+          <Metric label="평균나이 (세)" value={dong.avg_age != null ? `${dong.avg_age}` : "—"}
+                  tone="var(--warn)" />
+          <Metric label="노령화지수" value={dong.aged_child_idx != null ? `${dong.aged_child_idx}` : "—"}
+                  tone={dong.aged_child_idx != null && dong.aged_child_idx >= 200 ? "var(--danger)" : undefined} />
+        </div>
+      ) : (
+        <div style={{ fontSize: 13, color: "var(--ink-muted)", padding: "10px 0" }}>
+          {busy ? "인구 지표 조회 중..." : "인구 지표를 불러오지 못했습니다."}
+        </div>
+      )}
 
       {/* 시간대별 생활인구 */}
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, margin: "18px 0 6px" }}>
         <span style={{ fontSize: 13, fontWeight: 800 }}>시간대별 생활인구</span>
         <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>
-          {isMockFloat ? "시연용 목업" : `서울 열린데이터 · ${floating?.date}`}
+          {floating ? `서울 열린데이터 · ${floating.date}` : busy ? "조회 중..." : "자료 없음"}
         </span>
       </div>
-      <TrendLine labels={HOUR_LABELS} values={values} unit="명" ariaLabel="시간대별 생활인구" />
-      <div style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>
-        피크 {peakHour}시 · {Math.round(peak).toLocaleString()}명 —
-        결빙 새벽·피크 통행 시간대의 안전 순찰 배치 근거
-      </div>
+      {values ? (
+        <>
+          <TrendLine labels={HOUR_LABELS} values={values} unit="명" ariaLabel="시간대별 생활인구" />
+          <div style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>
+            피크 {peakHour}시 · {Math.round(peak).toLocaleString()}명 —
+            결빙 새벽·피크 통행 시간대의 안전 순찰 배치 근거
+          </div>
+        </>
+      ) : (
+        <div style={{ fontSize: 13, color: "var(--ink-muted)", padding: "10px 0" }}>
+          {busy ? "생활인구 조회 중..." : "생활인구 자료를 불러오지 못했습니다 (서울 지역 한정)."}
+        </div>
+      )}
 
       {notice && (
         <div style={{

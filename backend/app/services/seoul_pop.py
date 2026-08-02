@@ -71,3 +71,71 @@ def get_hourly_floating(api_key: str, adm_cd: str, date: str) -> dict:
         "hours": list(range(24)),
         "values": [v if v is not None else 0.0 for v in values],
     }
+
+
+# ── 서울 전역 일괄 조회 (효과 기대 지역 랭킹용) ─────────────────────
+# 한 시간대 호출(/1/1000/{date}/{HH})이 서울 전체 ~424개 동을 반환하므로
+# 24회 호출로 전시(全市) × 24시간을 얻는다. 과거 확정 자료라 날짜별로 캐시.
+_citywide_cache: dict[str, dict] = {}
+_CITYWIDE_CACHE_MAX = 4
+
+
+def _fetch_hour_all(api_key: str, date: str, hour: int) -> list[tuple[str, float]]:
+    url = f"{BASE}/{api_key}/json/{SERVICE}/1/1000/{date}/{hour:02d}"
+    try:
+        resp = requests.get(url, timeout=TIMEOUT * 2)
+        resp.raise_for_status()
+        data = resp.json()
+    except (requests.RequestException, ValueError):
+        return []  # 개별 시간대 실패는 건너뛰고 나머지로 평균
+    rows = (data.get(SERVICE) or {}).get("row") or []
+    out = []
+    for row in rows:
+        try:
+            out.append((str(row["ADSTRD_CODE_SE"]), float(row["TOT_LVPOP_CO"])))
+        except (KeyError, TypeError, ValueError):
+            continue
+    return out
+
+
+def get_citywide_daily(api_key: str, date: str) -> dict:
+    """서울 전 행정동의 일평균·피크 생활인구. 반환:
+    {date, hours_used, dongs: {행정동코드8: {avg, peak, peak_hour}}}"""
+    if date in _citywide_cache:
+        return _citywide_cache[date]
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        hourly = list(pool.map(lambda h: _fetch_hour_all(api_key, date, h), range(24)))
+
+    hours_used = sum(1 for rows in hourly if rows)
+    if hours_used == 0:
+        raise SeoulPopError(
+            "서울 생활인구 전역 자료를 가져오지 못했습니다. "
+            "인증키와 날짜(약 1주 전까지 공개)를 확인하세요.")
+
+    acc: dict[str, dict] = {}
+    for hour, rows in enumerate(hourly):
+        for adm, pop in rows:
+            slot = acc.setdefault(adm, {"sum": 0.0, "n": 0, "peak": 0.0, "peak_hour": 0})
+            slot["sum"] += pop
+            slot["n"] += 1
+            if pop > slot["peak"]:
+                slot["peak"] = pop
+                slot["peak_hour"] = hour
+
+    result = {
+        "date": date,
+        "hours_used": hours_used,
+        "dongs": {
+            adm: {
+                "avg": round(s["sum"] / s["n"]),
+                "peak": round(s["peak"]),
+                "peak_hour": s["peak_hour"],
+            }
+            for adm, s in acc.items() if s["n"] > 0
+        },
+    }
+    if len(_citywide_cache) >= _CITYWIDE_CACHE_MAX:
+        _citywide_cache.pop(next(iter(_citywide_cache)))
+    _citywide_cache[date] = result
+    return result

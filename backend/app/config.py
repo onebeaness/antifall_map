@@ -11,14 +11,8 @@ from dotenv import load_dotenv
 load_dotenv()  # backend/.env 로드 (없으면 무시)
 
 TMAP_APP_KEY = os.getenv("TMAP_APP_KEY", "")          # 필수 — POI 검색·경로 탐색
-VWORLD_API_KEY = os.getenv("VWORLD_API_KEY", "")      # 선택 — 없으면 OSM 폴백
-# V-World는 인증키에 등록된 도메인을 Referer로 검증한다. 타일 프록시는 서버에서
-# 호출하므로 브라우저 Referer가 없어, 등록한 사용URL을 여기에 넣어 헤더로 보낸다.
-VWORLD_REFERER = os.getenv("VWORLD_REFERER", "")
-# 배경지도 타일을 백엔드로 중계할지 여부. 지도 한 화면에 타일이 20장 이상 필요해
-# 무료 인스턴스에서 중계하면 지연·유실이 크다. 기본은 OSM 직접 사용(빠르고 안정적),
-# V-World 상세 지도가 필요할 때만 켠다.
-VWORLD_TILE_PROXY = os.getenv("VWORLD_TILE_PROXY", "").strip().lower() in ("1", "true", "yes", "on")
+# 선택 — POI 검색 실패 시 주소 지오코딩 보조용 (배경지도는 카카오맵 SDK가 담당)
+VWORLD_API_KEY = os.getenv("VWORLD_API_KEY", "")
 KWEATHER_API_KEY = os.getenv("KWEATHER_API_KEY", "")  # 선택 — 없으면 Open-Meteo 폴백
 
 # 선택 — SGIS(통계청) 인구·인구밀도·고령화 지표 (없으면 프론트가 목업 표시)

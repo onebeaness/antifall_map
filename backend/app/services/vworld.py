@@ -22,14 +22,6 @@ class VWorldError(RuntimeError):
     pass
 
 
-def tile_url(api_key: str, layer: str = "Base") -> str:
-    """folium/leaflet 에서 쓸 수 있는 V-World XYZ 타일 URL 템플릿.
-
-    layer: Base(일반), Satellite(위성), Hybrid(위성+라벨), midnight, gray 등
-    """
-    return f"https://api.vworld.kr/req/wmts/1.0.0/{api_key}/{layer}/{{z}}/{{y}}/{{x}}.png"
-
-
 def geocode(api_key: str, address: str) -> tuple[float, float] | None:
     """주소 → (lat, lon). 실패 시 None."""
     try:

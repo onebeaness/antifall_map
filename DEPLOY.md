@@ -24,7 +24,7 @@
    |---|---|---|
    | `TMAP_APP_KEY` | ★ | 경로·POI 기능 정지 |
    | `KWEATHER_API_KEY` | | Open-Meteo 폴백, 특보 미표시 |
-   | `VWORLD_API_KEY` | | OSM 배경지도로 폴백 |
+   | `VWORLD_API_KEY` | | POI 검색 실패 시 주소 지오코딩 보조 없음 |
    | `SGIS_CONSUMER_KEY` / `SGIS_CONSUMER_SECRET` | | 인구지표 목업 표시 |
    | `SEOUL_OPENAPI_KEY` | | 생활인구 목업 표시 |
    | `DATA_GO_KR_KEY` | | 보안등 밀도 미표시 |
@@ -67,13 +67,19 @@ https://<백엔드URL>/docs           ← 전체 API 테스트 UI
    | Build command | `npm run build` |
    | Build output directory | **`out`** |
 
-3. **Environment variables**에 백엔드 주소 등록:
+3. **Environment variables** 등록:
    ```
-   NEXT_PUBLIC_API_BASE = https://<1단계에서 받은 백엔드 URL>
+   NEXT_PUBLIC_API_BASE      = https://<1단계에서 받은 백엔드 URL>
+   NEXT_PUBLIC_KAKAO_MAP_KEY = <카카오 JavaScript 키>
+   NODE_VERSION              = 20
    ```
+   > 배경지도는 카카오맵 단독이다. 키가 없으면 지도 자리에 설정 안내가 표시된다.
+   > 반드시 **JavaScript 키**를 쓰고(**어드민 키 금지** — 서버 전용이라 노출 시 계정 전체가 위험),
+   > 카카오 개발자 앱의 **플랫폼 Web**에 배포 도메인과 `http://localhost:3000`을 등록해야 SDK가 동작한다.
+   > 두 `NEXT_PUBLIC_*` 값은 빌드 시점에 주입되므로 변경 후에는 재배포가 필요하다.
 4. 배포 완료 후 나온 `https://xxxx.pages.dev` 주소를 **Render의 `CORS_ORIGINS`에 추가**하고 백엔드를 재배포한다 (이 단계를 빠뜨리면 브라우저가 API 호출을 차단한다)
 
-> Vercel도 동일하다 — Root Directory `frontend`, 환경변수 `NEXT_PUBLIC_API_BASE` 하나.
+> Vercel도 동일하다 — Root Directory `frontend`, 위 환경변수 그대로.
 
 ---
 
@@ -111,5 +117,5 @@ Render 무료의 cold start가 부담되면 백엔드만 옮길 수 있다. 코�
 | 프론트에서 API 호출 실패 (CORS) | `CORS_ORIGINS`에 프론트 도메인 없음 | Render 환경변수에 추가 후 재배포 |
 | 첫 요청만 매우 느림 | 무료 플랜 sleep | 정상. 미리 깨우거나 유료 전환 |
 | `ml_available: false` | 모델 로드 실패 | Render 로그에서 `ml_error` 확인 |
-| 지도 타일 안 보임 | V-World 도메인 검증 | 인증키 사용URL에 배포 도메인 추가 |
+| 지도 자리에 안내 패널만 보임 | 카카오 JS 키 미설정·도메인 미등록 | `NEXT_PUBLIC_KAKAO_MAP_KEY` 확인 + 카카오 앱 플랫폼 Web에 도메인 등록 후 재배포 |
 | 500 오류 (메모리) | 동시 요청 과다 | 무료 512MB 한계. 유료 전환 또는 HF Spaces |

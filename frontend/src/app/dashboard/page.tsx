@@ -6,33 +6,28 @@
  *  1. KPI — 서울 427개 행정동 보행환경 위험도 요약 (실데이터)
  *  2. 위험도 지도(choropleth) + 위험 상위 표
  *  3. 선택 행정동 상세 — 위험 프로필 + 보안등 + 인구·생활인구 (연계 조회)
- *  4. 시연용 목업(신고 추이·연령 인구) + 정책 의사결정
+ *  4. 투입 효과 기대 지역 — 위험도 × 유동인구 랭킹
  *
- * 데이터: 위험도·지수는 팀 분석 산출물(public/geo/seoul_dong_risk.geojson),
+ * 전 구간 실데이터: 위험도·지수는 자체 보행환경 분석(public/geo/seoul_dong_risk.geojson),
  * 인구는 SGIS, 생활인구는 서울 열린데이터, 보안등은 공공데이터포털.
  */
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, KpiCard, NoticeStrip, SignalBadge } from "@/components/ui";
-import { AgeBars } from "@/components/charts/AgeBars";
-import { TrendLine } from "@/components/charts/TrendLine";
 import { PopulationPanel, type SelectedDong } from "@/components/PopulationPanel";
-import { getLightsNear } from "@/lib/api";
+import { getCitywideFloating, getLightsNear } from "@/lib/api";
 import { riskColor, riskLevel } from "@/lib/dongRisk";
 import { kakaoRoadviewUrl } from "@/lib/kakao";
-import type { DongRiskProps, Level, LightsResult } from "@/lib/types";
+import type { CitywideFloating, DongRiskProps, Level, LightsResult } from "@/lib/types";
 
 const ChoroplethMap = dynamic(() => import("@/components/ChoroplethMap"), { ssr: false });
 
-// ── 시연용 목업 (실데이터 연동 전 구간) ──────────────────────────────
-const MONTHS = ["25.08", "25.09", "25.10", "25.11", "25.12", "26.01",
-  "26.02", "26.03", "26.04", "26.05", "26.06", "26.07"];
-const MONTHLY = [96, 88, 102, 121, 143, 158, 139, 118, 104, 97, 97, 92];
-const AGE_BANDS = ["65–69세", "70–74세", "75–79세", "80–84세", "85세 이상"];
-const AGE_POP = [1860, 2540, 3180, 2910, 1990];
-
 const GRADE_LABEL: Record<Level, string> = { danger: "위험", warn: "주의", good: "양호" };
+
+function weekAgoYYYYMMDD(): string {
+  return new Date(Date.now() - 7 * 86400_000).toISOString().slice(0, 10).replace(/-/g, "");
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -42,9 +37,12 @@ export default function DashboardPage() {
   const [panelSel, setPanelSel] = useState<SelectedDong | null>(null);
   const [lights, setLights] = useState<LightsResult | null>(null);
   const [lightsMsg, setLightsMsg] = useState<string | null>(null);
-  const [picked, setPicked] = useState<Set<string>>(new Set());
   const [geoError, setGeoError] = useState(false);
   const [mounted, setMounted] = useState(false);
+  // 유동인구(서울 전역 일평균) — '투입 효과 기대 지역' 랭킹의 노출 지표
+  const [flow, setFlow] = useState<CitywideFloating | null>(null);
+  const [flowState, setFlowState] = useState<"loading" | "ready" | "error">("loading");
+  const [flowMsg, setFlowMsg] = useState<string | null>(null);
   // 연속 동 선택 시 늦은 보안등 응답이 현재 선택에 표시되지 않도록 순번 관리
   const lightsSeqRef = useRef(0);
   useEffect(() => setMounted(true), []);
@@ -52,16 +50,17 @@ export default function DashboardPage() {
   useEffect(() => {
     fetch("/geo/seoul_dong_risk.geojson")
       .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then((gj: GeoJSON.FeatureCollection) => {
-        setGeojson(gj);
-        const top = (gj.features.map((f) => f.properties) as DongRiskProps[])
-          .filter((p) => p.risk != null)
-          .sort((a, b) => (b.risk ?? 0) - (a.risk ?? 0))
-          .slice(0, 3)
-          .map((p) => p.name);
-        setPicked(new Set(top));
-      })
+      .then((gj: GeoJSON.FeatureCollection) => setGeojson(gj))
       .catch(() => { setGeojson(null); setGeoError(true); });
+  }, []);
+
+  useEffect(() => {
+    getCitywideFloating(weekAgoYYYYMMDD())
+      .then((f) => { setFlow(f); setFlowState("ready"); })
+      .catch((e) => {
+        setFlowState("error");
+        setFlowMsg(e instanceof Error ? e.message : String(e));
+      });
   }, []);
 
   const dongs = useMemo(() =>
@@ -84,15 +83,20 @@ export default function DashboardPage() {
     ? "위험 상위 행정동 (위험도순)"
     : `${filter} 등급 행정동 (위험도순)`;
 
-  /** 정책 시연용: 상위 10개 동 + 위험도 비례 가상 예산(백만) */
-  const policyRows = useMemo(() =>
-    dongs.slice(0, 10).map((p) => ({ ...p, budget: Math.round((p.risk ?? 0) * 0.8 + 8) })),
-    [dongs]);
-  const pickedRows = policyRows.filter((p) => picked.has(p.name));
-  const budget = pickedRows.reduce((s, r) => s + r.budget, 0);
-  const avgRisk = pickedRows.length
-    ? Math.round(pickedRows.reduce((s, r) => s + (r.risk ?? 0), 0) / pickedRows.length)
-    : 0;
+  /** 투입 효과 기대 지수 = 위험도 × 일평균 생활인구 — 위험하면서 노출 인구가
+   * 많은 동일수록 정비 투입 대비 낙상 감소 편익이 크다. */
+  const effectRows = useMemo(() => {
+    if (!flow) return [];
+    return dongs
+      .map((p) => {
+        const pop = flow.dongs[p.adm_cd2.slice(0, 8)];
+        if (!pop || p.risk == null) return null;
+        return { ...p, avgPop: pop.avg, effect: Math.round((p.risk * pop.avg) / 1000) };
+      })
+      .filter((r): r is NonNullable<typeof r> => r != null)
+      .sort((a, b) => b.effect - a.effect)
+      .slice(0, 12);
+  }, [dongs, flow]);
 
   const onSelectDong = async (p: DongRiskProps) => {
     setSelectedDong(p);
@@ -129,7 +133,7 @@ export default function DashboardPage() {
           </span>
         </div>
         <span style={{ marginLeft: "auto", fontSize: 12.5, opacity: 0.6 }}>
-          위험도·인구: 실데이터 · 신고·예산: 시연용 목업
+          보행환경 자체 분석 × 통계청·서울시·공공데이터 실데이터
         </span>
       </div>
 
@@ -294,70 +298,71 @@ export default function DashboardPage() {
         )}
       </Card>
 
-      {/* 시연용 목업 차트 */}
-      <div className="dash-grid-2" style={{ marginTop: 18 }}>
-        <Card style={{ padding: 18 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 8 }}>
-            월별 낙상 신고 추이 <span style={{ fontWeight: 500, color: "var(--ink-muted)" }}>· 시연용 목업</span>
-          </div>
-          <TrendLine labels={MONTHS} values={MONTHLY} unit="건" ariaLabel="월별 낙상 신고 추이" />
-          <div style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>
-            겨울철(25.11–26.01) 결빙기 신고가 연중 최고 — 제설함·열선 보강 근거
-          </div>
-        </Card>
-        <Card style={{ padding: 18 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 8 }}>
-            연령대별 고위험 추정 인구 <span style={{ fontWeight: 500, color: "var(--ink-muted)" }}>· 시연용 목업</span>
-          </div>
-          <AgeBars labels={AGE_BANDS} values={AGE_POP} />
-          <div style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>
-            75–84세 구간이 고위험 인구의 49% — 방문 점검 우선 연령대
-          </div>
-        </Card>
-      </div>
-
-      {/* 정책 의사결정 (시연용) */}
+      {/* 투입 효과 기대 지역 — 위험도 × 유동인구 (서울 생활인구 실데이터) */}
       <Card style={{ marginTop: 18, padding: 18 }}>
-        <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>
-          정책 의사결정 <span style={{ fontWeight: 500, color: "var(--ink-muted)" }}>· 예산은 시연용 추정치</span>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 14, fontWeight: 800 }}>투입 효과 기대 지역</span>
+          <span style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>
+            위험도 × 일평균 유동인구 — 보행환경이 위험하면서 지나다니는 사람이 많은 동일수록
+            정비 투입 대비 낙상 감소 효과가 큽니다
+            {flow && ` · 생활인구 기준일 ${flow.date}`}
+          </span>
         </div>
-        <div style={{ fontSize: 13, color: "var(--ink-muted)", marginBottom: 12 }}>
-          위험 상위 동 중 사업 등록할 곳을 고르면 예산이 합산됩니다
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-          {policyRows.map((r) => {
-            const sel = picked.has(r.name);
-            return (
-              <button key={r.name}
-                      onClick={() => {
-                        const next = new Set(picked);
-                        if (sel) next.delete(r.name); else next.add(r.name);
-                        setPicked(next);
-                      }}
-                      style={{
-                        minHeight: 42, padding: "0 14px", borderRadius: 21, cursor: "pointer",
-                        fontFamily: "inherit", fontSize: 13.5, fontWeight: 700,
-                        border: sel ? "2px solid var(--gov-navy)" : "1.5px solid var(--line)",
-                        background: sel ? "#f3f5fc" : "#fff",
-                        color: sel ? "var(--gov-navy)" : "var(--ink-muted)",
-                      }}>
-                {sel ? "✓ " : ""}{r.name}
-              </button>
-            );
-          })}
-        </div>
-        <div style={{ display: "flex", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
-          <KpiCard value={`${pickedRows.length}곳`} label="선택 행정동" />
-          <KpiCard value={`${budget.toLocaleString()}백만원`} label="소요 예산 (추정)" tone="blue" />
-          <KpiCard value={`${avgRisk}`} label="평균 위험도" tone="warn" />
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 2.2fr", gap: 10 }}>
-          <Button variant="ghost" onClick={() => router.push("/")}>← 처음 화면으로</Button>
-          <Button onClick={() => alert(`${pickedRows.length}개 행정동이 사업 목록에 등록되었습니다. (시연)`)}>
-            선택 {pickedRows.length}개 동 사업 일괄 등록
-          </Button>
-        </div>
+
+        {flowState === "loading" && (
+          <div style={{ fontSize: 13.5, color: "var(--ink-muted)", padding: "18px 0" }}>
+            서울 전역 생활인구 집계 중... (최초 조회는 수십 초 걸릴 수 있습니다)
+          </div>
+        )}
+        {flowState === "error" && (
+          <div style={{
+            fontSize: 13, color: "var(--ink-muted)", marginTop: 12,
+            background: "var(--bg-slate)", borderRadius: 10, padding: "12px 14px", lineHeight: 1.7,
+          }}>
+            유동인구 데이터를 불러오지 못해 이 랭킹을 표시할 수 없습니다.<br />
+            {flowMsg}
+          </div>
+        )}
+        {flowState === "ready" && effectRows.length > 0 && (
+          <div style={{ overflowX: "auto", marginTop: 12 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
+              <thead>
+                <tr style={{ color: "var(--ink-muted)", textAlign: "left" }}>
+                  {["순위", "행정동", "위험도", "일평균 유동인구", "효과지수", "주요요인", "현장"].map((h) => (
+                    <th key={h} style={{ padding: "6px 8px", borderBottom: "1px solid var(--line)", whiteSpace: "nowrap" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {effectRows.map((r, i) => (
+                  <tr key={r.adm_cd2} style={{ borderBottom: "1px solid var(--track)" }}>
+                    <td style={{ padding: "8px 8px", color: "var(--ink-muted)" }}>{i + 1}</td>
+                    <td style={{ padding: "8px 8px", fontWeight: 700, whiteSpace: "nowrap" }}>{r.name}</td>
+                    <td style={{ padding: "8px 8px", fontWeight: 800, color: `var(--${riskLevel(r.risk)})` }}>{r.risk}</td>
+                    <td style={{ padding: "8px 8px" }}>{r.avgPop.toLocaleString()}명</td>
+                    <td style={{ padding: "8px 8px", fontWeight: 800, color: "var(--medical-blue)" }}>{r.effect.toLocaleString()}</td>
+                    <td style={{ padding: "8px 8px", fontSize: 12.5, color: "var(--ink-muted)" }}>{r.factor ?? "—"}</td>
+                    <td style={{ padding: "8px 8px", whiteSpace: "nowrap" }}>
+                      <a href={kakaoRoadviewUrl(r.lat, r.lon)} target="_blank" rel="noopener noreferrer"
+                         style={{ fontSize: 12.5, fontWeight: 700, color: "var(--medical-blue)", textDecoration: "underline" }}>
+                        로드뷰 ↗
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ fontSize: 12.5, color: "var(--ink-muted)", marginTop: 8 }}>
+              효과지수 = 보행환경 위험도 × 일평균 생활인구 ÷ 1,000 · 위험 상위 표와 달리
+              사람이 실제로 많이 다니는 곳을 우선한다는 점이 다릅니다
+            </div>
+          </div>
+        )}
       </Card>
+
+      <div style={{ marginTop: 18 }}>
+        <Button variant="ghost" onClick={() => router.push("/")}>← 처음 화면으로</Button>
+      </div>
 
       <div style={{ height: 20 }} />
       <NoticeStrip />

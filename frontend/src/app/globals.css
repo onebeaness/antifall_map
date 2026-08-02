@@ -170,7 +170,3 @@ a {
   }
 }
 
-/* Leaflet 팝업 폰트 통일 */
-.leaflet-container {
-  font-family: inherit;
-}

@@ -35,6 +35,22 @@ def dong_population(
         raise HTTPException(status_code=502, detail=str(e)) from e
 
 
+@router.get("/population/floating/citywide")
+def citywide_floating(
+    date: str = Query(..., pattern=r"^\d{8}$", description="기준일 YYYYMMDD (약 1주 전까지 공개)"),
+) -> dict:
+    """서울 전 행정동의 일평균·피크 생활인구 — '투입 효과 기대 지역' 랭킹용.
+
+    시간대별 전역 조회 24회를 병렬 수행하고 날짜별로 캐시한다(과거 확정 자료).
+    """
+    if not config.SEOUL_OPENAPI_KEY:
+        raise HTTPException(status_code=503, detail="SEOUL_OPENAPI_KEY가 설정되지 않았습니다.")
+    try:
+        return seoul_pop.get_citywide_daily(config.SEOUL_OPENAPI_KEY, date)
+    except seoul_pop.SeoulPopError as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+
+
 @router.get("/population/floating")
 def floating_population(
     adm_cd: str = Query(..., description="서울 행정동코드 (예: 11110515)"),

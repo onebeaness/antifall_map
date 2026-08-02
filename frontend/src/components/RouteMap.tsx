@@ -1,14 +1,11 @@
 "use client";
 
-/** 경로 경사도 지도 — 구간별 색상 폴리라인 + 급경사 강조 + 출발/도착 마커 +
- * 카카오 로드뷰 링크(구간·마커·지도 클릭 팝업).
- *
- * 엔진 이중화: NEXT_PUBLIC_KAKAO_MAP_KEY가 있으면 카카오맵 SDK(국내 상세 지도),
- * 없거나 SDK 로드가 실패하면 Leaflet + OSM으로 자동 폴백한다.
+/** 경로 경사도 지도 — 카카오맵 단독(OSM 미사용).
+ * 구간별 색상 폴리라인 + 급경사 강조 원 + 출발/도착 마커 +
+ * 클릭 팝업(카카오 로드뷰 링크). 키가 없거나 SDK 로드 실패 시 안내 패널 표시.
  * dynamic import(ssr:false)로만 사용한다. */
 import { useEffect, useRef, useState } from "react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { MapUnavailable } from "@/components/MapUnavailable";
 import { slopeColor } from "@/lib/geo";
 import { hasKakaoKey, loadKakaoMaps, mapPopupHtml, type KakaoMapsNs } from "@/lib/kakaoMaps";
 
@@ -18,30 +15,18 @@ export interface RouteMapProps {
   elevations: number[];
   startName: string;
   endName: string;
-  tileUrl: string;
-  attribution: string;
-  maxZoom: number;
 }
 
-const MAP_STYLE = { width: "100%", height: 520, borderRadius: 14, overflow: "hidden" } as const;
+const HEIGHT = 520;
 
-export default function RouteMap(props: RouteMapProps) {
-  const [engine, setEngine] = useState<"kakao" | "leaflet">(hasKakaoKey ? "kakao" : "leaflet");
-  return engine === "kakao"
-    ? <KakaoRouteMap {...props} onFallback={() => setEngine("leaflet")} />
-    : <LeafletRouteMap {...props} />;
-}
-
-// ── 카카오맵 엔진 ────────────────────────────────────────────────────
-function KakaoRouteMap({
-  points, slopes, elevations, startName, endName, onFallback,
-}: RouteMapProps & { onFallback: () => void }) {
+export default function RouteMap({
+  points, slopes, elevations, startName, endName,
+}: RouteMapProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const fallbackRef = useRef(onFallback);
-  fallbackRef.current = onFallback;
+  const [error, setError] = useState<string | null>(hasKakaoKey ? null : "키 미설정");
 
   useEffect(() => {
-    if (!ref.current || points.length < 2) return;
+    if (!hasKakaoKey || !ref.current || points.length < 2) return;
     let cancelled = false;
     const container = ref.current;
     const overlays: { setMap: (m: unknown) => void }[] = [];
@@ -124,7 +109,9 @@ function KakaoRouteMap({
         points.forEach((p) => bounds.extend(ll(p)));
         map.setBounds(bounds, 24, 24, 24, 24);
       })
-      .catch(() => { if (!cancelled) fallbackRef.current(); });
+      .catch((e: unknown) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+      });
 
     return () => {
       cancelled = true;
@@ -133,66 +120,6 @@ function KakaoRouteMap({
     };
   }, [points, slopes, elevations, startName, endName]);
 
-  return <div ref={ref} style={MAP_STYLE} />;
-}
-
-// ── Leaflet + OSM 엔진 (폴백) ────────────────────────────────────────
-function LeafletRouteMap({
-  points, slopes, elevations, startName, endName, tileUrl, attribution, maxZoom,
-}: RouteMapProps) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!ref.current || points.length < 2) return;
-
-    const map = L.map(ref.current, { scrollWheelZoom: true });
-    L.tileLayer(tileUrl, { attribution, maxZoom }).addTo(map);
-
-    for (let i = 0; i < slopes.length; i++) {
-      const [lat, lon] = points[i];
-      const label = `경사 ${slopes[i] >= 0 ? "+" : ""}${slopes[i].toFixed(1)}% · 고도 ${elevations[i].toFixed(0)}m`;
-      L.polyline([points[i], points[i + 1]], {
-        color: slopeColor(slopes[i]),
-        weight: 6,
-        opacity: 0.9,
-      }).bindTooltip(label)
-        .bindPopup(mapPopupHtml(label, lat, lon))
-        .addTo(map);
-    }
-
-    for (let i = 0; i < slopes.length; i++) {
-      const s = Math.abs(slopes[i]);
-      if (s >= 9) {
-        const [lat, lon] = points[i];
-        L.circle(points[i], {
-          radius: 26 + s * 2,
-          color: "transparent",
-          fillColor: "#d7191c",
-          fillOpacity: Math.min(0.35, 0.12 + s / 60),
-        }).bindPopup(mapPopupHtml(`급경사 ${slopes[i].toFixed(1)}% 구간`, lat, lon))
-          .addTo(map);
-      }
-    }
-
-    const mk = (p: [number, number], color: string, label: string) =>
-      L.circleMarker(p, {
-        radius: 9, color: "#fff", weight: 2.5, fillColor: color, fillOpacity: 1,
-      }).bindTooltip(label)
-        .bindPopup(mapPopupHtml(label, p[0], p[1]))
-        .addTo(map);
-    mk(points[0], "#2E9E6B", `출발: ${startName}`);
-    mk(points[points.length - 1], "#D64545", `도착: ${endName}`);
-
-    map.on("click", (e: L.LeafletMouseEvent) => {
-      L.popup()
-        .setLatLng(e.latlng)
-        .setContent(mapPopupHtml("선택한 지점", e.latlng.lat, e.latlng.lng))
-        .openOn(map);
-    });
-
-    map.fitBounds(L.latLngBounds(points.map(([a, b]) => L.latLng(a, b))), { padding: [24, 24] });
-    return () => { map.remove(); };
-  }, [points, slopes, elevations, startName, endName, tileUrl, attribution, maxZoom]);
-
-  return <div ref={ref} style={MAP_STYLE} />;
+  if (error) return <MapUnavailable height={HEIGHT} reason={hasKakaoKey ? error : undefined} />;
+  return <div ref={ref} style={{ width: "100%", height: HEIGHT, borderRadius: 14, overflow: "hidden" }} />;
 }
