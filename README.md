@@ -1,4 +1,4 @@
-# 안심걸음 — 노인 낙상 위험 예측 서비스 (PWA)
+# 낙지도 — 노인 낙상 위험 예측 서비스 (PWA)
 
 Streamlit 프로토타입(`onebeaness/streamlit-slope`)을 **Next.js PWA + FastAPI** 구조로
 재구축한 모노레포. 디자인 시스템(ansim-ui)과 IA는 프로토타입 정본을 따르고,
