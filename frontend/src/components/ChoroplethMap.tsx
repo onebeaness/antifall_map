@@ -1,12 +1,12 @@
 "use client";
 
-/** 서울 보행환경 위험도 choropleth — 자치구 → 행정동 드릴다운.
+/** 서울 보행 경사위험도 choropleth — 자치구 → 행정동 드릴다운.
  *
  * 1단계: 자치구 25개. 이름 라벨을 상시 표시한다.
  * 2단계: 구를 클릭하면 그 구의 행정동만 남기고 확대 — 동 이름도 상시 표시.
  * 서울 421개 동을 한 번에 그리면 라벨이 서로 겹쳐 읽을 수 없어 이렇게 나눴다.
  *
- * 색: 0–9 양호 / 10–24 주의 / 25+ 위험. 자료 없는 구역은 회색.
+ * 색 구간은 lib/dongRisk.ts (무장애 설계기준 종단경사 기준). 자료 없는 구역은 회색.
  * 티맵(TMap) JS API v2 단독. dynamic import(ssr:false)로만 사용한다.
  */
 import { useCallback, useEffect, useId, useRef, useState } from "react";

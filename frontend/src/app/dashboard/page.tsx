@@ -3,12 +3,12 @@
 /** 기관·지자체 대시보드 B2G (IA.md 2.8).
  *
  * 구성 (위 → 아래):
- *  1. KPI — 서울 427개 행정동 보행환경 위험도 요약 (실데이터)
+ *  1. KPI — 서울 421개 행정동 보행 경사위험도 요약 (실데이터)
  *  2. 위험도 지도(choropleth) + 위험 상위 표
  *  3. 선택 행정동 상세 — 위험 프로필 + 보안등 + 인구·생활인구 (연계 조회)
  *  4. 투입 효과 기대 지역 — 위험도 × 유동인구 랭킹
  *
- * 전 구간 실데이터: 위험도·지수는 자체 보행환경 분석(public/geo/seoul_dong_risk.geojson),
+ * 전 구간 실데이터: 경사위험도는 자체 보행로 분석(public/geo/seoul_dong_risk.geojson),
  * 인구는 SGIS, 생활인구는 서울 열린데이터, 보안등은 공공데이터포털.
  */
 import dynamic from "next/dynamic";
@@ -18,7 +18,8 @@ import { Button, Card, KpiCard, NoticeStrip, SignalBadge } from "@/components/ui
 import { PopulationPanel, type SelectedDong } from "@/components/PopulationPanel";
 import { getCitywideFloating, getLightsNear } from "@/lib/api";
 import {
-  MIN_COMPLETENESS, completenessLabel, isReliable, riskColor, riskLevel,
+  RISK_DANGER, RISK_WARN, SLOPE_MAX, SLOPE_RECOMMENDED,
+  riskColor, riskLevel, slopeNote, steepPercent,
 } from "@/lib/dongRisk";
 import { kakaoRoadviewUrl } from "@/lib/kakao";
 import type { CitywideFloating, DongRiskProps, Level, LightsResult } from "@/lib/types";
@@ -27,16 +28,6 @@ const ChoroplethMap = dynamic(() => import("@/components/ChoroplethMap"), { ssr:
 
 const GRADE_LABEL: Record<Level, string> = { danger: "위험", warn: "주의", good: "양호" };
 
-/** 경사·협소·재질 지수와 각각의 신뢰 여부.
- * 경사는 DEM 전역 자료라 결측이 없어 항상 신뢰할 수 있다.
- * 협소·재질은 현장 기록 기반이라 기록률(완비율)을 함께 봐야 한다. */
-const INDEX_ROWS = (d: DongRiskProps) => [
-  { key: "경사", value: d.slope_idx, reliable: true, note: "DEM 전역 자료 — 결측 없음" },
-  { key: "협소", value: d.narrow_idx, reliable: isReliable(d.width_complete),
-    note: `폭 ${completenessLabel(d.width_complete)}` },
-  { key: "재질", value: d.surface_idx, reliable: isReliable(d.surface_complete),
-    note: `재질 ${completenessLabel(d.surface_complete)}` },
-];
 
 function weekAgoYYYYMMDD(): string {
   return new Date(Date.now() - 7 * 86400_000).toISOString().slice(0, 10).replace(/-/g, "");
@@ -165,7 +156,7 @@ export default function DashboardPage() {
           </span>
         </div>
         <span style={{ marginLeft: "auto", fontSize: 12.5, opacity: 0.6 }}>
-          보행환경 자체 분석 × 통계청·서울시·공공데이터 실데이터
+          보행로 경사 자체 분석 × 통계청·서울시·공공데이터 실데이터
         </span>
       </div>
 
@@ -173,10 +164,10 @@ export default function DashboardPage() {
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div>
           <div style={{ fontSize: 20, fontWeight: 800 }}>
-            {activeGu ? `${activeGu} 행정동별 보행환경 위험도` : "자치구별 보행환경 위험도"}
+            {activeGu ? `${activeGu} 행정동별 보행 경사위험도` : "자치구별 보행 경사위험도"}
           </div>
           <div style={{ fontSize: 13.5, color: "var(--ink-muted)", marginTop: 3 }}>
-            보도 경사·폭·재질 분석(자치구 25개 · 행정동 {dongs.length || 421}개)
+            보행로 지점 185,114개의 경사 분석(자치구 25개 · 행정동 {dongs.length || 421}개)
             — 자치구 → 행정동 순으로 좁혀 가며 인구·조명까지 연계 분석합니다
           </div>
         </div>
@@ -192,16 +183,16 @@ export default function DashboardPage() {
 
       <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
         <KpiCard value={`${dongs.length || "—"}`} label="분석 행정동" />
-        <KpiCard value={`${counts.danger}`} label="위험 (25점 이상)" tone="danger" />
-        <KpiCard value={`${counts.warn}`} label="주의 (10–24점)" tone="warn" />
-        <KpiCard value={`${counts.good}`} label="양호 (10점 미만)" tone="good" />
+        <KpiCard value={`${counts.danger}`} label={`위험 (${RISK_DANGER}점 이상)`} tone="danger" />
+        <KpiCard value={`${counts.warn}`} label={`주의 (${RISK_WARN}–${RISK_DANGER - 1}점)`} tone="warn" />
+        <KpiCard value={`${counts.good}`} label={`양호 (${RISK_WARN}점 미만)`} tone="good" />
       </div>
 
       {/* 지도 + 위험 상위 표 */}
       <div className="dash-grid" style={{ marginTop: 18 }}>
         <Card style={{ padding: 14 }}>
           <div style={{ fontSize: 14, fontWeight: 800, margin: "4px 4px 10px" }}>
-            보행환경 위험도 지도
+            보행 경사위험도 지도
             <span style={{ fontWeight: 500, color: "var(--ink-muted)", marginLeft: 6 }}>
               {activeGu ? `${activeGu} · 행정동 단위` : "서울 전체 · 자치구 단위"}
             </span>
@@ -228,9 +219,20 @@ export default function DashboardPage() {
             ))}
             <span style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>
               {activeGu
-                ? "· 진할수록 위험 · 자료 없음 = 회색 · 동을 클릭하면 아래에 상세가 열립니다"
-                : "· 진할수록 위험 · 자료 없음 = 회색 · 자치구를 클릭하면 행정동으로 들어갑니다"}
+                ? "· 진할수록 가파름 · 자료 없음 = 회색 · 동을 클릭하면 아래에 상세가 열립니다"
+                : "· 진할수록 가파름 · 자료 없음 = 회색 · 자치구를 클릭하면 행정동으로 들어갑니다"}
             </span>
+          </div>
+          {/* 산식 공개 — 등급 경계가 어디서 왔는지 화면에서 바로 확인되게 한다 */}
+          <div style={{
+            fontSize: 12, lineHeight: 1.65, color: "var(--ink-muted)",
+            background: "var(--bg-slate)", borderRadius: 10, padding: "10px 12px", marginTop: 10,
+          }}>
+            <b style={{ color: "var(--ink)" }}>산식</b> 경사위험도 = 100 × (0.5 × 상시부담 + 0.5 × 급경사노출).
+            상시부담 = min(1, 평균 경사 ÷ {SLOPE_MAX}°), 급경사노출 = 10° 이상 지점 비율.<br />
+            등급 경계는 무장애 설계기준 종단경사와 맞췄습니다 —
+            {" "}{RISK_WARN}점 = 권장 1/20({SLOPE_RECOMMENDED}°), {RISK_DANGER}점 = 최대 1/12({SLOPE_MAX}°).
+            경사는 DEM으로 보행로 185,114개 지점 전부 계산해 결측이 없습니다.
           </div>
         </Card>
 
@@ -245,7 +247,7 @@ export default function DashboardPage() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
               <thead>
                 <tr style={{ color: "var(--ink-muted)", textAlign: "left" }}>
-                  {["행정동", "위험도", "주요요인", "현장"].map((h) => (
+                  {["행정동", "위험도", "평균 경사", "급경사 구간", "현장"].map((h) => (
                     <th key={h} style={{ padding: "6px 8px", borderBottom: "1px solid var(--line)", whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
@@ -255,7 +257,8 @@ export default function DashboardPage() {
                   <tr key={p.adm_cd2} style={{ borderBottom: "1px solid var(--track)" }}>
                     <td style={{ padding: "8px 8px", fontWeight: 700, whiteSpace: "nowrap" }}>{p.name}</td>
                     <td style={{ padding: "8px 8px", fontWeight: 800, color: `var(--${riskLevel(p.risk)})` }}>{p.risk}</td>
-                    <td style={{ padding: "8px 8px", fontSize: 12.5, color: "var(--ink-muted)" }}>{p.factor ?? "—"}</td>
+                    <td style={{ padding: "8px 8px", fontSize: 12.5, color: "var(--ink-muted)" }}>{p.slope_mean ?? "—"}°</td>
+                    <td style={{ padding: "8px 8px", fontSize: 12.5, color: "var(--ink-muted)" }}>{steepPercent(p.steep_ratio)}</td>
                     <td style={{ padding: "8px 8px", whiteSpace: "nowrap" }}>
                       <a href={kakaoRoadviewUrl(p.lat, p.lon)} target="_blank" rel="noopener noreferrer"
                          style={{ fontSize: 12.5, fontWeight: 700, color: "var(--medical-blue)", textDecoration: "underline" }}>
@@ -292,49 +295,35 @@ export default function DashboardPage() {
 
         {selectedDong && (
           <div className="detail-grid" style={{ marginTop: 16 }}>
-            {/* 좌: 보행환경 위험 프로필 */}
+            {/* 좌: 보행 경사 프로필 */}
             <div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
                 <span style={{ fontSize: 40, fontWeight: 800, lineHeight: 1, color: riskColor(selectedDong.risk) }}>
                   {selectedDong.risk ?? "—"}
                 </span>
                 <span style={{ fontSize: 13, color: "var(--ink-muted)" }}>
-                  보행환경 위험도{selectedDong.factor && <> · 주요요인 <b>{selectedDong.factor}</b></>}
+                  보행 경사위험도 · 100점 만점
                 </span>
               </div>
-              {/* 협소·재질은 폭/재질이 기록된 지점만으로 계산된다. 기록률이 낮으면
-                  지수가 0이나 100으로 튀므로 숫자 대신 "자료 부족"으로 표시한다. */}
-              <div style={{ display: "grid", gridTemplateColumns: "48px 1fr auto", gap: "10px 10px", alignItems: "center", fontSize: 13, marginTop: 14 }}>
-                {INDEX_ROWS(selectedDong).map(({ key, value, reliable, note }) => (
-                  <span key={key} style={{ display: "contents" }}>
-                    <span style={{ fontWeight: 700 }}>{key}</span>
-                    <div style={{ height: 9, borderRadius: 5, background: "var(--track)", overflow: "hidden" }}>
-                      {reliable && (
-                        <div style={{ height: "100%", width: `${value ?? 0}%`, background: riskColor(value), borderRadius: 5 }} />
-                      )}
-                    </div>
-                    {reliable ? (
-                      <b style={{ textAlign: "right", color: riskColor(value), minWidth: 34 }}>{value ?? "—"}</b>
-                    ) : (
-                      <span style={{ textAlign: "right", fontSize: 11.5, fontWeight: 700, color: "var(--ink-muted)", whiteSpace: "nowrap" }}
-                            title={note}>자료 부족</span>
-                    )}
+              <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "9px 14px",
+                            alignItems: "baseline", fontSize: 13.5, marginTop: 16 }}>
+                <span style={{ fontWeight: 700, color: "var(--ink-muted)" }}>평균 경사</span>
+                <span><b style={{ fontSize: 15 }}>{selectedDong.slope_mean ?? "—"}°</b>
+                  <span style={{ color: "var(--ink-muted)", marginLeft: 8, fontSize: 12.5 }}>
+                    {slopeNote(selectedDong.slope_mean)}
                   </span>
-                ))}
+                </span>
+                <span style={{ fontWeight: 700, color: "var(--ink-muted)" }}>최대 경사</span>
+                <span><b style={{ fontSize: 15 }}>{selectedDong.slope_max ?? "—"}°</b></span>
+                <span style={{ fontWeight: 700, color: "var(--ink-muted)" }}>급경사 구간</span>
+                <span><b style={{ fontSize: 15 }}>{steepPercent(selectedDong.steep_ratio)}</b>
+                  <span style={{ color: "var(--ink-muted)", marginLeft: 8, fontSize: 12.5 }}>
+                    10° 이상 지점 비율
+                  </span>
+                </span>
               </div>
-              {selectedDong.slope_mean != null && (
-                <div style={{ fontSize: 12.5, color: "var(--ink-muted)", marginTop: 12 }}>
-                  경사 평균 {selectedDong.slope_mean} · 최대 {selectedDong.slope_max ?? "—"}
-                  {selectedDong.width_mean != null && <> · 보도 폭 평균 {selectedDong.width_mean}m</>}
-                </div>
-              )}
-              <div style={{ fontSize: 12, color: "var(--ink-muted)", marginTop: 6, lineHeight: 1.6 }}>
-                분석 지점 {selectedDong.points?.toLocaleString() ?? "—"}개 · 폭 {completenessLabel(selectedDong.width_complete)}
-                {" · "}재질 {completenessLabel(selectedDong.surface_complete)}
-                {(!isReliable(selectedDong.width_complete) || !isReliable(selectedDong.surface_complete)) && (
-                  <><br />기록률이 {Math.round(MIN_COMPLETENESS * 100)}% 미만인 항목은 값이 크게 흔들려 표시하지 않습니다
-                    — 위험이 낮다는 뜻이 아닙니다.</>
-                )}
+              <div style={{ fontSize: 12, color: "var(--ink-muted)", marginTop: 10 }}>
+                보행로 {selectedDong.points?.toLocaleString() ?? "—"}개 지점 · DEM 전 지점 계산
               </div>
               <div style={{ fontSize: 13, color: "var(--ink-muted)", marginTop: 12 }}>
                 {lights ? (
@@ -362,7 +351,7 @@ export default function DashboardPage() {
         <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
           <span style={{ fontSize: 14, fontWeight: 800 }}>투입 효과 기대 지역</span>
           <span style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>
-            위험도 × 일평균 유동인구 — 보행환경이 위험하면서 지나다니는 사람이 많은 동일수록
+            위험도 × 일평균 유동인구 — 경사가 가파르면서 지나다니는 사람이 많은 동일수록
             정비 투입 대비 낙상 감소 효과가 큽니다
             {flow && ` · 생활인구 기준일 ${flow.date}`}
           </span>
@@ -387,7 +376,7 @@ export default function DashboardPage() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
               <thead>
                 <tr style={{ color: "var(--ink-muted)", textAlign: "left" }}>
-                  {["순위", "행정동", "위험도", "일평균 유동인구", "효과지수", "주요요인", "현장"].map((h) => (
+                  {["순위", "행정동", "위험도", "일평균 유동인구", "효과지수", "평균 경사", "현장"].map((h) => (
                     <th key={h} style={{ padding: "6px 8px", borderBottom: "1px solid var(--line)", whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
@@ -400,7 +389,7 @@ export default function DashboardPage() {
                     <td style={{ padding: "8px 8px", fontWeight: 800, color: `var(--${riskLevel(r.risk)})` }}>{r.risk}</td>
                     <td style={{ padding: "8px 8px" }}>{r.avgPop.toLocaleString()}명</td>
                     <td style={{ padding: "8px 8px", fontWeight: 800, color: "var(--medical-blue)" }}>{r.effect.toLocaleString()}</td>
-                    <td style={{ padding: "8px 8px", fontSize: 12.5, color: "var(--ink-muted)" }}>{r.factor ?? "—"}</td>
+                    <td style={{ padding: "8px 8px", fontSize: 12.5, color: "var(--ink-muted)" }}>{r.slope_mean ?? "—"}°</td>
                     <td style={{ padding: "8px 8px", whiteSpace: "nowrap" }}>
                       <a href={kakaoRoadviewUrl(r.lat, r.lon)} target="_blank" rel="noopener noreferrer"
                          style={{ fontSize: 12.5, fontWeight: 700, color: "var(--medical-blue)", textDecoration: "underline" }}>
@@ -412,7 +401,7 @@ export default function DashboardPage() {
               </tbody>
             </table>
             <div style={{ fontSize: 12.5, color: "var(--ink-muted)", marginTop: 8 }}>
-              효과지수 = 보행환경 위험도 × 일평균 생활인구 ÷ 1,000 · 위험 상위 표와 달리
+              효과지수 = 보행 경사위험도 × 일평균 생활인구 ÷ 1,000 · 위험 상위 표와 달리
               사람이 실제로 많이 다니는 곳을 우선한다는 점이 다릅니다
             </div>
           </div>

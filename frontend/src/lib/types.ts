@@ -121,43 +121,35 @@ export interface LightsResult {
   sample: { lat: number; lon: number; addr: string }[];
 }
 
-/** 서울 행정동 보행환경 geojson 속성 (팀 분석 산출물, 번들 자산) */
+/** 서울 행정동 보행 경사위험도 geojson 속성 (scripts/build_risk_geojson.py 산출) */
 export interface DongRiskProps {
   name: string;
   sgg: string;
   adm_cd: string;  // 통계청(SGIS) 코드
   adm_cd2: string; // 행자부 10자리 — 생활인구는 앞 8자리
-  risk: number | null;       // 환경위험도 0~100
-  slope_idx: number | null;  // 경사 지수 0~100
-  narrow_idx: number | null; // 협소 지수 0~100
-  surface_idx: number | null; // 재질 지수 0~100
-  factor: string | null;     // 주요위험요인 (경사/협소/재질)
+  /** 보행 경사위험도 0~100 (scripts/build_risk_geojson.py 산식) */
+  risk: number | null;
+  /** 보행로 지점 평균 경사(도) */
   slope_mean: number | null;
+  /** 최대 경사(도) */
   slope_max: number | null;
+  /** 10° 이상 급경사 지점의 비율 0~1 */
   steep_ratio: number | null;
-  width_mean: number | null;
   /** 분석에 쓰인 보행로 지점 수 */
   points: number | null;
-  /** 폭이 기록된 지점의 비율 0~1 — 낮으면 narrow_idx를 신뢰할 수 없다 */
-  width_complete: number | null;
-  /** 재질이 기록된 지점의 비율 0~1 — 낮으면 surface_idx를 신뢰할 수 없다 */
-  surface_complete: number | null;
   lat: number;
   lon: number;
 }
 
-/** 자치구 보행환경 위험도 (seoul_gu_risk.geojson) — 드릴다운 1단계 */
+/** 자치구 보행 경사위험도 (seoul_gu_risk.geojson) — 드릴다운 1단계.
+ * 행정동 값을 지점 수로 가중 평균해 만든다. */
 export interface GuRiskProps {
   name: string;
   sgg: string;
   risk: number | null;
-  slope_idx: number | null;
-  narrow_idx: number | null;
-  surface_idx: number | null;
-  factor: string | null;
+  slope_mean: number | null;
+  steep_ratio: number | null;
   points: number | null;
-  width_complete: number | null;
-  surface_complete: number | null;
   lat: number;
   lon: number;
 }

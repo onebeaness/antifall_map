@@ -68,7 +68,7 @@ export default function LandingPage() {
             근거에 기반한 지역별 위험 현황과 정책 지원 화면입니다.<br />
             자치구에서 행정동까지 좁혀 가며 살펴볼 수 있습니다.
           </p>
-          <Bullet color="var(--medical-blue)" text="보행환경 위험도" sub="자치구 25개 · 행정동 421개" />
+          <Bullet color="var(--medical-blue)" text="보행 경사위험도" sub="자치구 25개 · 행정동 421개" />
           <Bullet color="var(--warn)" text="인구·생활인구 연계" sub="통계청 · 서울 열린데이터" />
           <Bullet color="var(--danger)" text="투입 효과 기대 지역" sub="위험도 × 유동인구" />
           <div style={{ marginTop: 26 }}>
