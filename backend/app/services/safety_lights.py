@@ -1,6 +1,6 @@
 """전국보안등정보표준데이터 클라이언트 (공공데이터포털 표준데이터 API).
 
-엔드포인트: http://api.data.go.kr/openapi/tn_pubr_public_scrty_lmp_api
+엔드포인트: https://api.data.go.kr/openapi/tn_pubr_public_scrty_lmp_api (http는 403)
 키 발급: https://www.data.go.kr/data/15017320/standard.do 에서 활용신청
 공통 파라미터: serviceKey, pageNo, numOfRows, type=json + 응답 컬럼 동등 필터.
 
@@ -18,7 +18,7 @@ import requests
 
 from app.utils.secrets import mask_secrets as _safe
 
-URL = "http://api.data.go.kr/openapi/tn_pubr_public_scrty_lmp_api"
+URL = "https://api.data.go.kr/openapi/tn_pubr_public_scrty_lmp_api"
 TIMEOUT = 15
 _PER_PAGE = 1000
 _MAX_PAGES = 10  # 스캔 상한 (요청 폭주 방지)
@@ -57,7 +57,16 @@ def count_lights_near(service_key: str, lat: float, lon: float, radius_m: float,
         if instt_nm:
             params["insttNm"] = instt_nm
         try:
-            resp = requests.get(URL, params=params, timeout=TIMEOUT)
+            resp = requests.get(URL, params=params, timeout=TIMEOUT,
+                                headers={"Accept": "application/json"})
+            if resp.status_code in (401, 403):
+                # 이 세 가지 말고 다른 원인은 사실상 없다
+                raise LightsError(
+                    "보안등 API 접근이 거부되었습니다(HTTP "
+                    f"{resp.status_code}). 공공데이터포털에서 "
+                    "'전국보안등정보표준데이터' 활용신청이 승인되었는지, "
+                    "인증키를 Decoding 키로 넣었는지 확인해 주세요. "
+                    "발급 직후에는 반영까지 시간이 걸릴 수 있습니다.")
             resp.raise_for_status()
             data = resp.json()
         except requests.RequestException as e:
