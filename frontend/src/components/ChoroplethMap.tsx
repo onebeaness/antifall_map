@@ -5,10 +5,10 @@
  * 동 클릭 → onSelect(속성) — 대시보드에서 인구·생활인구·보안등 조회로 연결.
  * 키가 없거나 SDK 로드 실패 시 안내 패널 표시.
  * dynamic import(ssr:false)로만 사용한다. */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { MapUnavailable } from "@/components/MapUnavailable";
 import { riskColor } from "@/lib/dongRisk";
-import { hasTmapKey, loadTmap, type TmapNs } from "@/lib/tmapMaps";
+import { loadTmap, type TmapNs } from "@/lib/tmapMaps";
 import type { DongRiskProps } from "@/lib/types";
 
 export interface ChoroplethMapProps {
@@ -26,10 +26,13 @@ export default function ChoroplethMap({ geojson, onSelect }: ChoroplethMapProps)
   const ref = useRef<HTMLDivElement>(null);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
-  const [error, setError] = useState<string | null>(hasTmapKey ? null : "키 미설정");
+  // Tmapv2.Map은 컨테이너를 div id 문자열로 받는다 (엘리먼트 전달은 버전에 따라 실패)
+  const mapId = `tmap-choro-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0); // "다시 시도" 누를 때마다 재로드
 
   useEffect(() => {
-    if (!hasTmapKey || !ref.current) return;
+    if (!ref.current) return;
     let cancelled = false;
     const container = ref.current;
     // SDK 동적 객체 — 공식 타입 패키지가 없어 any로 다룬다
@@ -39,13 +42,14 @@ export default function ChoroplethMap({ geojson, onSelect }: ChoroplethMapProps)
     loadTmap()
       .then((T: TmapNs) => {
         if (cancelled || !container) return;
-        map = new T.Map(container, {
+        map = new T.Map(mapId, {
           center: new T.LatLng(SEOUL_CENTER[0], SEOUL_CENTER[1]),
           width: "100%",
           height: `${HEIGHT}px`,
           zoom: 11,
           zoomControl: true,
           scrollwheel: false,
+          httpsMode: true,  // HTTPS 페이지에서 타일이 혼합콘텐츠로 차단되는 것 방지
         });
 
         let selected: { setOptions?: (o: object) => void } | null = null;
@@ -87,8 +91,11 @@ export default function ChoroplethMap({ geojson, onSelect }: ChoroplethMapProps)
       try { map?.destroy?.(); } catch { /* 정리 실패는 무시 */ }
       container.innerHTML = "";
     };
-  }, [geojson]);
+  }, [geojson, mapId, attempt]);
 
-  if (error) return <MapUnavailable height={HEIGHT} reason={hasTmapKey ? error : undefined} />;
-  return <div ref={ref} style={{ width: "100%", height: HEIGHT, borderRadius: 14, overflow: "hidden" }} />;
+  if (error) {
+    return <MapUnavailable height={HEIGHT} reason={error}
+                           onRetry={() => { setError(null); setAttempt((n) => n + 1); }} />;
+  }
+  return <div id={mapId} ref={ref} style={{ width: "100%", height: HEIGHT, borderRadius: 14, overflow: "hidden" }} />;
 }

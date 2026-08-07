@@ -4,11 +4,11 @@
  * 구간별 색상 폴리라인 + 급경사 강조 원 + 출발/도착 마커 +
  * 클릭 팝업(카카오 로드뷰 링크). 키가 없거나 SDK 로드 실패 시 안내 패널 표시.
  * dynamic import(ssr:false)로만 사용한다. */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { MapUnavailable } from "@/components/MapUnavailable";
 import { slopeColor } from "@/lib/geo";
 import { mapPopupHtml } from "@/lib/kakao";
-import { dotIcon, eventLatLon, hasTmapKey, loadTmap, type TmapNs } from "@/lib/tmapMaps";
+import { dotIcon, eventLatLon, loadTmap, type TmapNs } from "@/lib/tmapMaps";
 
 export interface RouteMapProps {
   points: [number, number][];
@@ -24,10 +24,13 @@ export default function RouteMap({
   points, slopes, elevations, startName, endName,
 }: RouteMapProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [error, setError] = useState<string | null>(hasTmapKey ? null : "키 미설정");
+  // Tmapv2.Map은 컨테이너를 div id 문자열로 받는다 (엘리먼트 전달은 버전에 따라 실패)
+  const mapId = `tmap-route-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0); // "다시 시도" 누를 때마다 재로드
 
   useEffect(() => {
-    if (!hasTmapKey || !ref.current || points.length < 2) return;
+    if (!ref.current || points.length < 2) return;
     let cancelled = false;
     const container = ref.current;
     // SDK 동적 객체 — 공식 타입 패키지가 없어 any로 다룬다
@@ -38,13 +41,14 @@ export default function RouteMap({
       .then((T: TmapNs) => {
         if (cancelled || !container) return;
         const ll = (p: [number, number]) => new T.LatLng(p[0], p[1]);
-        map = new T.Map(container, {
+        map = new T.Map(mapId, {
           center: ll(points[0]),
           width: "100%",
           height: `${HEIGHT}px`,
           zoom: 15,
           zoomControl: true,
           scrollwheel: true,
+          httpsMode: true,  // HTTPS 페이지에서 타일이 혼합콘텐츠로 차단되는 것 방지
         });
 
         // 팝업은 하나만 유지 — 새로 열 때 이전 것을 지운다
@@ -134,8 +138,11 @@ export default function RouteMap({
       try { map?.destroy?.(); } catch { /* 정리 실패는 무시 */ }
       container.innerHTML = "";
     };
-  }, [points, slopes, elevations, startName, endName]);
+  }, [points, slopes, elevations, startName, endName, mapId, attempt]);
 
-  if (error) return <MapUnavailable height={HEIGHT} reason={hasTmapKey ? error : undefined} />;
-  return <div ref={ref} style={{ width: "100%", height: HEIGHT, borderRadius: 14, overflow: "hidden" }} />;
+  if (error) {
+    return <MapUnavailable height={HEIGHT} reason={error}
+                           onRetry={() => { setError(null); setAttempt((n) => n + 1); }} />;
+  }
+  return <div id={mapId} ref={ref} style={{ width: "100%", height: HEIGHT, borderRadius: 14, overflow: "hidden" }} />;
 }

@@ -29,6 +29,10 @@ services:
       # ↓ 값은 Render 대시보드 Environment 탭에서 입력 (저장소에 노출 금지)
       - key: TMAP_APP_KEY
         sync: false
+      # 브라우저 지도(JS API v2)용 appKey — /api/config/map 으로 프론트에 내려간다.
+      # 비워두면 TMAP_APP_KEY로 폴백한다.
+      - key: TMAP_JS_APP_KEY
+        sync: false
       - key: VWORLD_API_KEY
         sync: false
       - key: KWEATHER_API_KEY

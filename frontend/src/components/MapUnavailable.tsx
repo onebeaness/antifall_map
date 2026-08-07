@@ -1,31 +1,46 @@
 "use client";
 
-/** 지도를 표시할 수 없을 때의 안내 패널 — 배경지도는 티맵 단독. */
-import { hasTmapKey } from "@/lib/tmapMaps";
+/** 지도를 표시할 수 없을 때의 안내 패널 — 배경지도는 티맵 단독.
+ * 실패 사유를 그대로 보여주고, 원인별 조치를 한 줄로 안내한다. */
 
-export function MapUnavailable({ height, reason }: { height: number; reason?: string }) {
+/** 실패 사유 → 사용자가 할 조치 */
+function advice(reason: string): string {
+  if (reason.includes("연결할 수 없습니다")) {
+    return "백엔드 서버가 깨어나는 중일 수 있습니다(무료 플랜은 첫 요청이 느립니다). 잠시 후 다시 시도해 주세요.";
+  }
+  if (reason.includes("서버에 설정") || reason.includes("키 조회 실패")) {
+    return "Render 환경변수 TMAP_JS_APP_KEY(없으면 TMAP_APP_KEY)를 확인해 주세요.";
+  }
+  if (reason.includes("Tmapv2 전역")) {
+    return "appKey가 거부되었을 수 있습니다. openapi.sk.com에서 해당 앱의 JavaScript 지도 API 사용 설정과 서비스 도메인 등록을 확인해 주세요.";
+  }
+  if (reason.includes("스크립트 로드 실패") || reason.includes("시간 초과")) {
+    return "네트워크에서 apis.openapi.sk.com 접근이 막혔을 수 있습니다. 잠시 후 다시 시도해 주세요.";
+  }
+  return "잠시 후 다시 시도해 주세요.";
+}
+
+export function MapUnavailable({
+  height, reason, onRetry,
+}: { height: number; reason?: string; onRetry?: () => void }) {
   return (
     <div style={{
       height, borderRadius: 14, background: "var(--track)",
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      gap: 8, padding: 24, textAlign: "center",
+      gap: 10, padding: 24, textAlign: "center",
     }}>
       <div style={{ fontSize: 15, fontWeight: 800 }}>지도를 표시할 수 없습니다</div>
       <div style={{ fontSize: 13.5, lineHeight: 1.7, color: "var(--ink-muted)", maxWidth: 440 }}>
-        {!hasTmapKey ? (
-          <>
-            티맵 지도 키가 설정되지 않았습니다.<br />
-            빌드 환경변수 <b>NEXT_PUBLIC_TMAP_APP_KEY</b>에 티맵 JS API용 appKey를 넣고 재배포하세요.
-            (백엔드 <b>TMAP_APP_KEY</b>와는 별도의 키를 쓰세요 — 브라우저에 노출됩니다.)
-          </>
-        ) : (
-          <>
-            티맵 지도 SDK를 불러오지 못했습니다{reason ? ` (${reason})` : ""}.<br />
-            openapi.sk.com에서 해당 앱에 <b>이 사이트 도메인</b>이 등록되어 있는지,
-            JavaScript 지도 서비스가 활성화되어 있는지 확인해 주세요.
-          </>
-        )}
+        {reason ? <><b>{reason}</b><br /></> : null}
+        {advice(reason ?? "")}
       </div>
+      {onRetry ? (
+        <button type="button" onClick={onRetry} style={{
+          marginTop: 4, padding: "9px 18px", borderRadius: 10,
+          border: "1px solid var(--line)", background: "#fff",
+          fontSize: 13.5, fontWeight: 700, cursor: "pointer",
+        }}>다시 시도</button>
+      ) : null}
     </div>
   );
 }

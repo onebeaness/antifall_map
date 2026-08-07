@@ -1,4 +1,4 @@
-"""안심걸음 백엔드 API — FastAPI 진입점.
+"""낙지도 백엔드 API — FastAPI 진입점.
 
 실행: uvicorn app.main:app --reload  (backend/ 디렉토리에서)
 프론트엔드(Next.js PWA)는 이 서버의 /api/* 만 호출한다.
@@ -13,7 +13,7 @@ from app.routers import assess, poi, population, route, safety, weather
 from app.services import fall_model
 
 app = FastAPI(
-    title="안심걸음 API",
+    title="낙지도 API",
     description="노인 낙상 위험 예측 서비스 백엔드 — ML 추론 + 외부 API 프록시",
     version="1.0.0",
 )
@@ -32,6 +32,17 @@ app.include_router(route.router, prefix="/api", tags=["route"])
 app.include_router(weather.router, prefix="/api", tags=["weather"])
 app.include_router(population.router, prefix="/api", tags=["population"])
 app.include_router(safety.router, prefix="/api", tags=["safety"])
+
+
+@app.get("/api/config/map")
+def map_config() -> dict:
+    """브라우저 지도(티맵 JS API v2)용 공개 설정.
+
+    프론트는 정적 내보내기라 빌드 시점 환경변수를 바꾸려면 재배포가 필요하다.
+    이 엔드포인트로 내려주면 서버 환경변수만 고쳐도 새로고침으로 반영된다.
+    (지도 SDK 키는 어떤 방식이든 브라우저에 노출된다 — CORS로 오리진만 제한한다.)
+    """
+    return {"tmap_app_key": config.TMAP_JS_APP_KEY}
 
 
 @app.get("/api/health")

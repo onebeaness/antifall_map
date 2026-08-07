@@ -11,6 +11,10 @@ from dotenv import load_dotenv
 load_dotenv()  # backend/.env 로드 (없으면 무시)
 
 TMAP_APP_KEY = os.getenv("TMAP_APP_KEY", "")          # 필수 — POI 검색·경로 탐색
+# 브라우저 지도(JS API v2)용 appKey. /api/config/map 으로 프론트에 내려간다.
+# 비워두면 TMAP_APP_KEY로 폴백하지만, 지도 SDK 키는 브라우저에 노출되므로
+# openapi.sk.com에서 JS 지도 전용 앱을 따로 만들어 넣는 편이 안전하다.
+TMAP_JS_APP_KEY = os.getenv("TMAP_JS_APP_KEY", "") or TMAP_APP_KEY
 # 선택 — POI 검색 실패 시 주소 지오코딩 보조용 (배경지도는 카카오맵 SDK가 담당)
 VWORLD_API_KEY = os.getenv("VWORLD_API_KEY", "")
 KWEATHER_API_KEY = os.getenv("KWEATHER_API_KEY", "")  # 선택 — 없으면 Open-Meteo 폴백
