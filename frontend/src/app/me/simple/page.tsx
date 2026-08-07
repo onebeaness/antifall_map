@@ -184,13 +184,26 @@ export default function SimpleTestPage() {
           ) : (
             <div style={{ textAlign: "center" }}>
               <input
-                type="number" inputMode="numeric" min={q.min} max={q.max}
-                value={ans[q.code] === undefined ? "" : Number(ans[q.code])}
+                type="number"
+                inputMode="numeric"
+                min={q.min}
+                max={q.max}
+                value={ans[q.code] !== undefined ? ans[q.code] : ""}
                 placeholder={String(q.default ?? 0)}
                 onChange={(e) => {
                   const v = e.target.value;
-                  if (v === "") { setAnswer(q.code, undefined as unknown as number); return; }
-                  setAnswer(q.code, Math.max(q.min ?? 0, Math.min(q.max ?? 999, Number(v))));
+                  if (v === "") {
+                    setAnswer(q.code, undefined as unknown as number);
+                    return;
+                  }
+                  setAnswer(q.code, Number(v));
+                }}
+                onBlur={(e) => {
+                  const v = e.target.value;
+                  if (v === "") return;
+                  const num = Number(v);
+                  const clamped = Math.max(q.min ?? 0, Math.min(q.max ?? 999, num));
+                  setAnswer(q.code, clamped);
                 }}
                 style={{
                   fontSize: 26, fontWeight: 800, textAlign: "center", height: 60, width: 220,
