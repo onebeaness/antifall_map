@@ -63,15 +63,13 @@ export const assessPrecision = (answers: Answers, fallExperience: boolean) =>
 export const searchPoi = (q: string) =>
   request<Poi[]>(`/api/poi?q=${encodeURIComponent(q)}`);
 
-export const analyzeRoute = (
-  start: Poi, end: Poi, mode: "pedestrian" | "car", intervalM = 30,
-) =>
+/** 보행자 경로 + 구간별 경사도. 이 서비스는 보행자 경로만 다룬다. */
+export const analyzeRoute = (start: Poi, end: Poi, intervalM = 30) =>
   request<RouteResult>("/api/route", {
     method: "POST",
     body: JSON.stringify({
       start: { name: start.name, lat: start.lat, lon: start.lon },
       end: { name: end.name, lat: end.lat, lon: end.lon },
-      mode,
       interval_m: intervalM,
     }),
   });

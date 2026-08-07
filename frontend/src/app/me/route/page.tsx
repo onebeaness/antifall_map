@@ -94,7 +94,6 @@ export default function RoutePage() {
   const router = useRouter();
   const [start, setStart] = useState<Poi | null>(null);
   const [end, setEnd] = useState<Poi | null>(null);
-  const [mode, setMode] = useState<"pedestrian" | "car">("pedestrian");
   // 정적 내보내기에서는 HTML이 빌드 시점에 만들어진다. 여기서 오늘 날짜를 바로
   // 넣으면 '빌드한 날'이 HTML에 박혀 hydration 불일치가 생기므로, 마운트 후 채운다.
   const [date, setDate] = useState("");
@@ -134,7 +133,7 @@ export default function RoutePage() {
     setBusy(true);
     setError(null);
     try {
-      setResult(await analyzeRoute(start, end, mode, 30));
+      setResult(await analyzeRoute(start, end, 30));
     } catch (e) {
       setResult(null);
       setError(e instanceof Error ? e.message : String(e));
@@ -167,20 +166,6 @@ export default function RoutePage() {
       </div>
 
       <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginTop: 14 }}>
-        <div style={{ display: "flex", gap: 8 }}>
-          {(["pedestrian", "car"] as const).map((m) => (
-            <button key={m} onClick={() => setMode(m)}
-                    style={{
-                      minHeight: 46, padding: "0 18px", borderRadius: 12, cursor: "pointer",
-                      fontFamily: "inherit", fontSize: 15, fontWeight: 700,
-                      border: mode === m ? "2px solid var(--gov-navy)" : "1.5px solid var(--line)",
-                      background: mode === m ? "#f3f5fc" : "#fff",
-                      color: mode === m ? "var(--gov-navy)" : "var(--ink)",
-                    }}>
-              {m === "pedestrian" ? "보행자 경로" : "자동차 경로"}
-            </button>
-          ))}
-        </div>
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 700 }}>
           이동 날짜
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)}

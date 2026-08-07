@@ -5,7 +5,6 @@ Tmap 경로 조회 → 리샘플링(기본 30m) → DEM 고도 조회 → 이동
 """
 from __future__ import annotations
 
-from typing import Literal
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -27,13 +26,15 @@ class RoutePoint(BaseModel):
 class RouteRequest(BaseModel):
     start: RoutePoint
     end: RoutePoint
-    mode: Literal["pedestrian", "car"] = "pedestrian"
     interval_m: float = Field(30.0, ge=10, le=100, description="리샘플링 간격(m)")
 
 
 @router.post("/route")
 def analyze_route(req: RouteRequest) -> dict:
-    """경로 + 구간별 경사도. 응답: IA.md 3절 스키마."""
+    """보행자 경로 + 구간별 경사도. 응답: IA.md 3절 스키마.
+
+    이 서비스는 고령자 보행 안전이 목적이라 자동차 경로는 다루지 않는다.
+    """
     if not config.TMAP_APP_KEY:
         raise HTTPException(status_code=503, detail="TMAP_APP_KEY가 설정되지 않았습니다.")
 
@@ -42,8 +43,7 @@ def analyze_route(req: RouteRequest) -> dict:
     e = tmap_svc.Poi(name=req.end.name or "도착지", address="",
                      lat=req.end.lat, lon=req.end.lon)
     try:
-        route = (tmap_svc.pedestrian_route if req.mode == "pedestrian"
-                 else tmap_svc.car_route)(config.TMAP_APP_KEY, s, e)
+        route = tmap_svc.pedestrian_route(config.TMAP_APP_KEY, s, e)
     except tmap_svc.TmapError as ex:
         raise HTTPException(status_code=502, detail=str(ex)) from ex
 

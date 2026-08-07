@@ -1,9 +1,9 @@
 """Tmap API 클라이언트.
 
 - POI 통합검색: 출발지/도착지 이름 검색 → 좌표
-- 경로안내: 보행자 / 자동차 경로 → 경로 좌표열(폴리라인)
+- 경로안내: 보행자 경로 → 경로 좌표열(폴리라인)
 
-공식 문서: https://openapi.sk.com/ (TMAP > 명칭검색, 보행자/자동차 경로안내)
+공식 문서: https://openapi.sk.com/ (TMAP > 명칭검색, 보행자 경로안내)
 모든 요청은 헤더 `appKey`로 인증한다.
 """
 
@@ -131,26 +131,6 @@ def pedestrian_route(
             "endName": end.name or "도착지",
             "reqCoordType": "WGS84GEO",
             "resCoordType": "WGS84GEO",
-        },
-    )
-    return _parse_route_features(data)
-
-
-def car_route(app_key: str, start: Poi, end: Poi) -> Route:
-    """자동차 경로안내."""
-    data = _request(
-        "POST",
-        "/tmap/routes?version=1",
-        app_key,
-        json={
-            "startX": str(start.lon),
-            "startY": str(start.lat),
-            "endX": str(end.lon),
-            "endY": str(end.lat),
-            "reqCoordType": "WGS84GEO",
-            "resCoordType": "WGS84GEO",
-            "searchOption": "0",
-            "trafficInfo": "N",
         },
     )
     return _parse_route_features(data)

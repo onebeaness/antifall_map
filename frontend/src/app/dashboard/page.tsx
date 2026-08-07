@@ -17,13 +17,26 @@ import { useRouter } from "next/navigation";
 import { Button, Card, KpiCard, NoticeStrip, SignalBadge } from "@/components/ui";
 import { PopulationPanel, type SelectedDong } from "@/components/PopulationPanel";
 import { getCitywideFloating, getLightsNear } from "@/lib/api";
-import { riskColor, riskLevel } from "@/lib/dongRisk";
+import {
+  MIN_COMPLETENESS, completenessLabel, isReliable, riskColor, riskLevel,
+} from "@/lib/dongRisk";
 import { kakaoRoadviewUrl } from "@/lib/kakao";
 import type { CitywideFloating, DongRiskProps, Level, LightsResult } from "@/lib/types";
 
 const ChoroplethMap = dynamic(() => import("@/components/ChoroplethMap"), { ssr: false });
 
 const GRADE_LABEL: Record<Level, string> = { danger: "위험", warn: "주의", good: "양호" };
+
+/** 경사·협소·재질 지수와 각각의 신뢰 여부.
+ * 경사는 DEM 전역 자료라 결측이 없어 항상 신뢰할 수 있다.
+ * 협소·재질은 현장 기록 기반이라 기록률(완비율)을 함께 봐야 한다. */
+const INDEX_ROWS = (d: DongRiskProps) => [
+  { key: "경사", value: d.slope_idx, reliable: true, note: "DEM 전역 자료 — 결측 없음" },
+  { key: "협소", value: d.narrow_idx, reliable: isReliable(d.width_complete),
+    note: `폭 ${completenessLabel(d.width_complete)}` },
+  { key: "재질", value: d.surface_idx, reliable: isReliable(d.surface_complete),
+    note: `재질 ${completenessLabel(d.surface_complete)}` },
+];
 
 function weekAgoYYYYMMDD(): string {
   return new Date(Date.now() - 7 * 86400_000).toISOString().slice(0, 10).replace(/-/g, "");
@@ -32,6 +45,9 @@ function weekAgoYYYYMMDD(): string {
 export default function DashboardPage() {
   const router = useRouter();
   const [geojson, setGeojson] = useState<GeoJSON.FeatureCollection | null>(null);
+  const [guGeojson, setGuGeojson] = useState<GeoJSON.FeatureCollection | null>(null);
+  // 드릴다운 단계 — null이면 서울 전체(자치구), 값이 있으면 그 구의 행정동
+  const [activeGu, setActiveGu] = useState<string | null>(null);
   const [filter, setFilter] = useState<"전체" | "위험" | "주의" | "양호">("전체");
   const [selectedDong, setSelectedDong] = useState<DongRiskProps | null>(null);
   const [panelSel, setPanelSel] = useState<SelectedDong | null>(null);
@@ -48,10 +64,14 @@ export default function DashboardPage() {
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    fetch("/geo/seoul_dong_risk.geojson")
-      .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then((gj: GeoJSON.FeatureCollection) => setGeojson(gj))
-      .catch(() => { setGeojson(null); setGeoError(true); });
+    const load = (path: string) =>
+      fetch(path).then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json() as Promise<GeoJSON.FeatureCollection>;
+      });
+    Promise.all([load("/geo/seoul_gu_risk.geojson"), load("/geo/seoul_dong_risk.geojson")])
+      .then(([gu, dong]) => { setGuGeojson(gu); setGeojson(dong); })
+      .catch(() => { setGeojson(null); setGuGeojson(null); setGeoError(true); });
   }, []);
 
   useEffect(() => {
@@ -75,13 +95,15 @@ export default function DashboardPage() {
     good: dongs.filter((p) => riskLevel(p.risk) === "good").length,
   }), [dongs]);
 
+  /** 표는 지도의 드릴다운 단계를 따라간다 — 구를 열면 그 구의 동만 */
   const topRows = useMemo(() => {
-    if (filter === "전체") return dongs.slice(0, 12);
-    return dongs.filter((p) => GRADE_LABEL[riskLevel(p.risk)] === filter).slice(0, 12);
-  }, [dongs, filter]);
-  const tableTitle = filter === "전체"
-    ? "위험 상위 행정동 (위험도순)"
-    : `${filter} 등급 행정동 (위험도순)`;
+    const scoped = activeGu ? dongs.filter((p) => p.sgg === activeGu) : dongs;
+    const graded = filter === "전체"
+      ? scoped : scoped.filter((p) => GRADE_LABEL[riskLevel(p.risk)] === filter);
+    return graded.slice(0, activeGu ? 30 : 12);
+  }, [dongs, filter, activeGu]);
+  const tableTitle = `${activeGu ? `${activeGu} ` : "위험 상위 "}`
+    + (filter === "전체" ? "행정동 (위험도순)" : `${filter} 등급 행정동 (위험도순)`);
 
   /** 투입 효과 기대 지수 = 위험도 × 일평균 생활인구 — 위험하면서 노출 인구가
    * 많은 동일수록 정비 투입 대비 낙상 감소 편익이 크다. */
@@ -97,6 +119,16 @@ export default function DashboardPage() {
       .sort((a, b) => b.effect - a.effect)
       .slice(0, 12);
   }, [dongs, flow]);
+
+  /** 드릴다운 단계 전환 — 구를 바꾸면 이전 동 선택과 진행 중인 조회를 정리한다 */
+  const onGuChange = (gu: string | null) => {
+    setActiveGu(gu);
+    setSelectedDong(null);
+    setPanelSel(null);
+    setLights(null);
+    setLightsMsg(null);
+    lightsSeqRef.current++; // 늦게 도착할 이전 보안등 응답을 버린다
+  };
 
   const onSelectDong = async (p: DongRiskProps) => {
     setSelectedDong(p);
@@ -140,9 +172,12 @@ export default function DashboardPage() {
       {/* 제목 + 필터 + KPI */}
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 800 }}>행정동별 보행환경 위험도</div>
+          <div style={{ fontSize: 20, fontWeight: 800 }}>
+            {activeGu ? `${activeGu} 행정동별 보행환경 위험도` : "자치구별 보행환경 위험도"}
+          </div>
           <div style={{ fontSize: 13.5, color: "var(--ink-muted)", marginTop: 3 }}>
-            보도 경사·폭·재질 분석(서울 {dongs.length || 427}개 행정동) — 동을 클릭하면 인구·조명까지 연계 분석
+            보도 경사·폭·재질 분석(자치구 25개 · 행정동 {dongs.length || 421}개)
+            — 자치구 → 행정동 순으로 좁혀 가며 인구·조명까지 연계 분석합니다
           </div>
         </div>
         <select value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)}
@@ -167,9 +202,14 @@ export default function DashboardPage() {
         <Card style={{ padding: 14 }}>
           <div style={{ fontSize: 14, fontWeight: 800, margin: "4px 4px 10px" }}>
             보행환경 위험도 지도
+            <span style={{ fontWeight: 500, color: "var(--ink-muted)", marginLeft: 6 }}>
+              {activeGu ? `${activeGu} · 행정동 단위` : "서울 전체 · 자치구 단위"}
+            </span>
           </div>
-          {mounted && geojson
-            ? <ChoroplethMap geojson={geojson} onSelect={onSelectDong} />
+          {mounted && geojson && guGeojson
+            ? <ChoroplethMap guGeojson={guGeojson} dongGeojson={geojson}
+                             activeGu={activeGu} onGuChange={onGuChange}
+                             onSelectDong={onSelectDong} />
             : (
               <div style={{
                 height: 460, borderRadius: 14, background: "var(--track)",
@@ -187,7 +227,9 @@ export default function DashboardPage() {
               </span>
             ))}
             <span style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>
-              · 진할수록 위험 · 자료 없음 = 회색 · 동 클릭 → 아래 상세
+              {activeGu
+                ? "· 진할수록 위험 · 자료 없음 = 회색 · 동을 클릭하면 아래에 상세가 열립니다"
+                : "· 진할수록 위험 · 자료 없음 = 회색 · 자치구를 클릭하면 행정동으로 들어갑니다"}
             </span>
           </div>
         </Card>
@@ -260,14 +302,23 @@ export default function DashboardPage() {
                   보행환경 위험도{selectedDong.factor && <> · 주요요인 <b>{selectedDong.factor}</b></>}
                 </span>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "48px 1fr 34px", gap: "10px 10px", alignItems: "center", fontSize: 13, marginTop: 14 }}>
-                {([["경사", selectedDong.slope_idx], ["협소", selectedDong.narrow_idx], ["재질", selectedDong.surface_idx]] as [string, number | null][]).map(([k, v]) => (
-                  <span key={k} style={{ display: "contents" }}>
-                    <span style={{ fontWeight: 700 }}>{k}</span>
+              {/* 협소·재질은 폭/재질이 기록된 지점만으로 계산된다. 기록률이 낮으면
+                  지수가 0이나 100으로 튀므로 숫자 대신 "자료 부족"으로 표시한다. */}
+              <div style={{ display: "grid", gridTemplateColumns: "48px 1fr auto", gap: "10px 10px", alignItems: "center", fontSize: 13, marginTop: 14 }}>
+                {INDEX_ROWS(selectedDong).map(({ key, value, reliable, note }) => (
+                  <span key={key} style={{ display: "contents" }}>
+                    <span style={{ fontWeight: 700 }}>{key}</span>
                     <div style={{ height: 9, borderRadius: 5, background: "var(--track)", overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${v ?? 0}%`, background: riskColor(v), borderRadius: 5 }} />
+                      {reliable && (
+                        <div style={{ height: "100%", width: `${value ?? 0}%`, background: riskColor(value), borderRadius: 5 }} />
+                      )}
                     </div>
-                    <b style={{ textAlign: "right", color: riskColor(v) }}>{v ?? "—"}</b>
+                    {reliable ? (
+                      <b style={{ textAlign: "right", color: riskColor(value), minWidth: 34 }}>{value ?? "—"}</b>
+                    ) : (
+                      <span style={{ textAlign: "right", fontSize: 11.5, fontWeight: 700, color: "var(--ink-muted)", whiteSpace: "nowrap" }}
+                            title={note}>자료 부족</span>
+                    )}
                   </span>
                 ))}
               </div>
@@ -277,6 +328,14 @@ export default function DashboardPage() {
                   {selectedDong.width_mean != null && <> · 보도 폭 평균 {selectedDong.width_mean}m</>}
                 </div>
               )}
+              <div style={{ fontSize: 12, color: "var(--ink-muted)", marginTop: 6, lineHeight: 1.6 }}>
+                분석 지점 {selectedDong.points?.toLocaleString() ?? "—"}개 · 폭 {completenessLabel(selectedDong.width_complete)}
+                {" · "}재질 {completenessLabel(selectedDong.surface_complete)}
+                {(!isReliable(selectedDong.width_complete) || !isReliable(selectedDong.surface_complete)) && (
+                  <><br />기록률이 {Math.round(MIN_COMPLETENESS * 100)}% 미만인 항목은 값이 크게 흔들려 표시하지 않습니다
+                    — 위험이 낮다는 뜻이 아닙니다.</>
+                )}
+              </div>
               <div style={{ fontSize: 13, color: "var(--ink-muted)", marginTop: 12 }}>
                 {lights ? (
                   <>야간 조명: 반경 {lights.radius_m}m 내 보안등{" "}

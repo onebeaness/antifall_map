@@ -180,6 +180,27 @@ export function eventLatLon(evt: unknown): { lat: number; lon: number } | null {
   return null;
 }
 
+/** 지도 위 텍스트 라벨 아이콘 — 외부 이미지 없이 data URI SVG로 생성.
+ * 배경지도의 상호·도로명 위에서도 읽히도록 흰 외곽선을 두른다.
+ * 반환값의 width/height는 Marker의 iconSize에 그대로 넘긴다. */
+export function textIcon(
+  text: string, fontSize = 12,
+): { uri: string; width: number; height: number } {
+  // 한글은 폭이 글자당 약 1em, 숫자·공백은 그보다 좁다 — 넉넉히 잡는다
+  const width = Math.ceil(text.length * fontSize * 1.02) + 8;
+  const height = Math.ceil(fontSize * 1.7);
+  const escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
+    `<text x="${width / 2}" y="${height * 0.74}" text-anchor="middle" ` +
+    `font-family="system-ui,-apple-system,sans-serif" font-size="${fontSize}" font-weight="800" ` +
+    `stroke="#fff" stroke-width="3.5" stroke-linejoin="round" paint-order="stroke">${escaped}</text>` +
+    `<text x="${width / 2}" y="${height * 0.74}" text-anchor="middle" ` +
+    `font-family="system-ui,-apple-system,sans-serif" font-size="${fontSize}" font-weight="800" ` +
+    `fill="#1b2430">${escaped}</text></svg>`;
+  return { uri: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, width, height };
+}
+
 /** 색 점 마커 아이콘 — 외부 이미지 없이 data URI SVG로 생성 */
 export function dotIcon(color: string, size = 18): string {
   const r = size / 2;

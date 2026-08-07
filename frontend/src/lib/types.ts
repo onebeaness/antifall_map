@@ -136,6 +136,28 @@ export interface DongRiskProps {
   slope_max: number | null;
   steep_ratio: number | null;
   width_mean: number | null;
+  /** 분석에 쓰인 보행로 지점 수 */
+  points: number | null;
+  /** 폭이 기록된 지점의 비율 0~1 — 낮으면 narrow_idx를 신뢰할 수 없다 */
+  width_complete: number | null;
+  /** 재질이 기록된 지점의 비율 0~1 — 낮으면 surface_idx를 신뢰할 수 없다 */
+  surface_complete: number | null;
+  lat: number;
+  lon: number;
+}
+
+/** 자치구 보행환경 위험도 (seoul_gu_risk.geojson) — 드릴다운 1단계 */
+export interface GuRiskProps {
+  name: string;
+  sgg: string;
+  risk: number | null;
+  slope_idx: number | null;
+  narrow_idx: number | null;
+  surface_idx: number | null;
+  factor: string | null;
+  points: number | null;
+  width_complete: number | null;
+  surface_complete: number | null;
   lat: number;
   lon: number;
 }
