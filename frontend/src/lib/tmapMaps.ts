@@ -26,6 +26,8 @@ const BUILD_TIME_KEY = process.env.NEXT_PUBLIC_TMAP_APP_KEY ?? "";
 /* SDK 전역 타입 — 공식 타입 패키지가 없어 최소한으로 선언 */
 declare global {
   interface Window {
+    /** 로더 실행 전에는 우리가 넣은 {singleFile}, 실행 후에는 로더의
+     * {_getScriptLocation, VERSION_NUMBER}, 본체 로드 후에는 실제 SDK 네임스페이스 */
     Tmapv2?: TmapNs;
   }
 }
@@ -62,14 +64,27 @@ function resolveKey(): Promise<string> {
 
 let loading: Promise<TmapNs> | null = null;
 
-/** jsv2는 스크립트 onload 직후 전역이 준비되는 게 보통이지만, 일부 버전은
- * 내부 모듈을 이어서 붙이느라 한 박자 늦는다. onload 후 잠깐 폴링한다. */
+/** jsv2가 document.write로 붙이려는 SDK 본체 파일명.
+ * 로더 안에 하드코딩된 기본값과 동일하다 — 로더 소스를 파싱할 수 없어 여기 둔다. */
+const SDK_BUNDLE = "tmapjs2.min.js?version=20231206";
+
+/** DOM에 script 태그 하나 추가 — 로드/에러를 Promise로 감싼다. */
+function injectScript(src: string, onFail: (why: string) => void): HTMLScriptElement {
+  const el = document.createElement("script");
+  el.src = src;
+  el.async = true;
+  el.onerror = () => onFail(`스크립트 로드 실패: ${new URL(src, location.href).host}`);
+  document.head.appendChild(el);
+  return el;
+}
+
+/** Tmapv2.Map 이 준비될 때까지 폴링 */
 function waitForGlobal(deadline: number): Promise<TmapNs> {
   return new Promise((resolve, reject) => {
     const tick = () => {
       if (window.Tmapv2?.Map) return resolve(window.Tmapv2);
       if (performance.now() >= deadline) {
-        return reject(new Error("SDK는 받았지만 Tmapv2 전역이 준비되지 않음 (appKey 거부 가능성)"));
+        return reject(new Error("SDK 본체를 붙였지만 Tmapv2.Map이 준비되지 않음"));
       }
       setTimeout(tick, 60);
     };
@@ -77,37 +92,66 @@ function waitForGlobal(deadline: number): Promise<TmapNs> {
   });
 }
 
-/** SDK를 1회만 로드. 실패(키 오류·도메인 미등록·네트워크)하면 reject. */
-export function loadTmap(timeoutMs = 12000): Promise<TmapNs> {
+/** 티맵 SDK를 1회만 로드.
+ *
+ * ⚠️ jsv2 엔드포인트는 SDK 본체가 아니라 **로더**다. 로더는 본체
+ * (topopentileN.tmap.co.kr/scriptSDKV2/tmapjs2.min.js)를 `document.write()`로
+ * 끼워 넣는데, 브라우저는 동적 삽입된 스크립트의 document.write를 무시한다.
+ * 그래서 <script> 태그를 코드로 만들어 넣으면 로더만 돌고 본체는 영영 안 붙는다
+ * (window.Tmapv2 는 생기지만 Tmapv2.Map 이 없는 상태).
+ *
+ * 대응: 로더가 노출하는 `Tmapv2.singleFile` 플래그를 미리 켜서 document.write
+ * 경로를 아예 끄고, 로더가 알려준 CDN 주소(_getScriptLocation)로 본체를 직접 붙인다.
+ * 로더 <script> 태그는 DOM에 남겨둔다 — 본체가 거기서 appKey를 읽어 간다.
+ */
+export function loadTmap(timeoutMs = 15000): Promise<TmapNs> {
   if (typeof window === "undefined") return Promise.reject(new Error("SSR"));
   if (window.Tmapv2?.Map) return Promise.resolve(window.Tmapv2);
   if (loading) return loading;
 
   loading = resolveKey().then((appKey) => new Promise<TmapNs>((resolve, reject) => {
     let settled = false;
-    const script = document.createElement("script");
     const deadline = performance.now() + timeoutMs;
+    const tags: HTMLScriptElement[] = [];
 
     const fail = (why: string) => {
       if (settled) return;
       settled = true;
-      script.remove(); // 실패한 스크립트 태그 정리 — 재시도 시 중복 삽입 방지
-      loading = null;  // 다음 시도에서 재로드할 수 있게
+      clearTimeout(timer);
+      tags.forEach((t) => t.remove()); // 실패한 태그 정리 — 재시도 시 중복 삽입 방지
+      delete window.Tmapv2;            // 껍데기 전역이 남으면 다음 로더가 오작동한다
+      loading = null;
       reject(new Error(why));
     };
     const timer = setTimeout(() => fail("티맵 SDK 로드 시간 초과"), timeoutMs);
 
-    script.src = `https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=${encodeURIComponent(appKey)}`;
-    script.async = true;
-    script.onerror = () => { clearTimeout(timer); fail("티맵 SDK 스크립트 로드 실패 (네트워크·차단)"); };
-    script.onload = () => {
-      clearTimeout(timer);
+    // 로더의 document.write 분기를 끈다 (본체는 아래에서 직접 붙인다)
+    window.Tmapv2 = { singleFile: true };
+
+    const loader = injectScript(
+      `https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=${encodeURIComponent(appKey)}`,
+      () => fail("티맵 로더 로드 실패 (네트워크·차단)"));
+    tags.push(loader);
+
+    loader.onload = () => {
+      // 로더는 window.Tmapv2 를 {_getScriptLocation, VERSION_NUMBER} 로 교체한다.
+      const base = window.Tmapv2?._getScriptLocation?.();
+      if (typeof base !== "string") {
+        return fail("티맵 로더가 SDK 주소를 알려주지 않음 (appKey 거부 가능성)");
+      }
+      tags.push(injectScript(base + SDK_BUNDLE,
+        () => fail("티맵 SDK 본체 로드 실패 (tmap.co.kr 차단 가능성)")));
+
       waitForGlobal(deadline).then(
-        (T) => { if (!settled) { settled = true; resolve(T); } },
+        (T) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          resolve(T);
+        },
         (e: Error) => fail(e.message),
       );
     };
-    document.head.appendChild(script);
   })).catch((e: unknown) => {
     loading = null;
     throw e instanceof Error ? e : new Error(String(e));

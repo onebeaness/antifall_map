@@ -11,10 +11,13 @@ function advice(reason: string): string {
   if (reason.includes("서버에 설정") || reason.includes("키 조회 실패")) {
     return "Render 환경변수 TMAP_JS_APP_KEY(없으면 TMAP_APP_KEY)를 확인해 주세요.";
   }
-  if (reason.includes("Tmapv2 전역")) {
+  if (reason.includes("SDK 주소를 알려주지")) {
     return "appKey가 거부되었을 수 있습니다. openapi.sk.com에서 해당 앱의 JavaScript 지도 API 사용 설정과 서비스 도메인 등록을 확인해 주세요.";
   }
-  if (reason.includes("스크립트 로드 실패") || reason.includes("시간 초과")) {
+  if (reason.includes("본체 로드 실패") || reason.includes("Tmapv2.Map이 준비되지")) {
+    return "지도 SDK 배포 서버(topopentile*.tmap.co.kr) 접근이 막혔을 수 있습니다. 사내망·광고차단 확장 프로그램을 확인해 주세요.";
+  }
+  if (reason.includes("로더 로드 실패") || reason.includes("시간 초과")) {
     return "네트워크에서 apis.openapi.sk.com 접근이 막혔을 수 있습니다. 잠시 후 다시 시도해 주세요.";
   }
   return "잠시 후 다시 시도해 주세요.";
