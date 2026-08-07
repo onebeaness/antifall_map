@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="낙지도 로고">
+  <title>낙지도</title>
+  <!-- maskable 변형 — 모서리를 깎지 않은 전면 배경 + 마크를 안전영역(중앙 80%)으로 축소.
+       원본은 logo.svg. 두 파일의 마크 경로는 동일하게 유지할 것. -->
+  <rect width="512" height="512" fill="#1668C8"/>
+  <g transform="translate(256 256) scale(0.72) translate(-246 -256)">
+    <g fill="#fff">
+      <ellipse cx="176" cy="128" rx="35" ry="45" transform="rotate(-10 176 128)"/>
+      <ellipse cx="243" cy="100" rx="22" ry="29" transform="rotate(-5 243 100)"/>
+      <ellipse cx="292" cy="109" rx="20" ry="26" transform="rotate(6 292 109)"/>
+      <ellipse cx="335" cy="128" rx="18" ry="24" transform="rotate(16 335 128)"/>
+      <ellipse cx="371" cy="157" rx="16" ry="21" transform="rotate(26 371 157)"/>
+      <path fill-rule="evenodd" d="
+        M232 408 C232 408 314 306 314 244 A82 82 0 1 0 150 244 C150 306 232 408 232 408 Z
+        M232 210 a35 35 0 1 0 0 70 a35 35 0 1 0 0-70 Z"/>
+      <path fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round" d="
+        M163 312 C118 322 96 356 112 378 C124 394 148 391 150 374 C151 363 140 359 134 366"/>
+      <path fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round" d="
+        M301 312 C346 322 368 356 352 378 C340 394 316 391 314 374 C313 363 324 359 330 366"/>
+      <path fill="none" stroke="#fff" stroke-width="18" stroke-linecap="round" d="
+        M112 386 C132 438 300 452 372 392 C398 370 396 348 372 344"/>
+    </g>
+    <g fill="#1668C8">
+      <circle cx="211" cy="322" r="11.5"/>
+      <circle cx="253" cy="322" r="11.5"/>
+    </g>
+  </g>
+</svg>

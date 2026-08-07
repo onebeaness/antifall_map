@@ -10,5 +10,6 @@ export { StepPanel, type StepPanelProps, type StepItem } from "./StepPanel";
 export { DomainProgress, type DomainProgressProps, type DomainSegment } from "./DomainProgress";
 export { NoticeStrip, type NoticeStripProps } from "./NoticeStrip";
 export { HeaderBar, type HeaderBarProps } from "./HeaderBar";
+export { LogoMark } from "./LogoMark";
 export { TextField, type TextFieldProps } from "./TextField";
 export { Radar, type RadarProps } from "./Radar";

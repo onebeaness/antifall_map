@@ -4,7 +4,7 @@
  * 이름·생년월일(확인)·성별·최근 1년 낙상 경험(ML Model B 게이트)을 수집한다. */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, OptionButton, TextField } from "@/components/ui";
+import { Button, Card, LogoMark, OptionButton, TextField } from "@/components/ui";
 import { storage } from "@/lib/storage";
 import type { Gender } from "@/lib/types";
 
@@ -51,10 +51,7 @@ export default function RegisterPage() {
         {/* 좌: 브랜드 패널 */}
         <Card variant="panel" style={{ padding: "44px 40px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 22 }}>
-            <div style={{
-              width: 44, height: 44, borderRadius: 12, background: "rgba(255,255,255,.14)",
-              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800,
-            }}>낙</div>
+            <LogoMark size={44} radius={12} variant="ghost" />
             <div style={{ fontSize: 18, fontWeight: 800 }}>낙지도</div>
           </div>
           <h1 style={{ fontSize: 32, fontWeight: 800, lineHeight: 1.35, letterSpacing: "-0.6px", margin: "0 0 18px" }}>

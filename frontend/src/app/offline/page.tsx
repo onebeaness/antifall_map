@@ -1,15 +1,13 @@
-import { Card } from "@/components/ui";
+import { Card, LogoMark } from "@/components/ui";
 
 /** 오프라인 폴백 화면 — 서비스 워커가 내비게이션 실패 시 보여준다. */
 export default function OfflinePage() {
   return (
     <main className="container" style={{ display: "flex", justifyContent: "center", paddingTop: 80 }}>
       <Card variant="question" style={{ textAlign: "center" }}>
-        <div style={{
-          width: 44, height: 44, borderRadius: 12, background: "var(--gov-navy)", color: "#fff",
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-          fontSize: 20, fontWeight: 800, marginBottom: 14,
-        }}>낙</div>
+        <div style={{ display: "inline-block", marginBottom: 14 }}>
+          <LogoMark size={44} radius={12} />
+        </div>
         <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.5px", margin: "0 0 10px" }}>
           네트워크 연결이 필요합니다
         </h1>

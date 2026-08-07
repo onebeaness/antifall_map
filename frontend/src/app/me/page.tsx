@@ -4,7 +4,7 @@
  * 간단·정밀 결과 카드 + 다음 행동. 정밀 완료 시 두 카드 모두 활성(정밀이 간단 포함). */
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Gauge, NoticeStrip, Radar, SignalBadge } from "@/components/ui";
+import { Button, Card, Gauge, LogoMark, NoticeStrip, Radar, SignalBadge } from "@/components/ui";
 import {
   computeScores, levelColor, levelOf, simpleFactors, simpleHeuristic,
 } from "@/lib/scoring";
@@ -67,10 +67,7 @@ export default function HubPage() {
       {/* 헤더 */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{
-            width: 38, height: 38, borderRadius: 9, background: "var(--gov-navy)", color: "#fff",
-            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 800,
-          }}>낙</div>
+          <LogoMark size={38} radius={9} />
           <div>
             <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.3px" }}>
               {profile.name}님의 낙상 위험 종합 확인

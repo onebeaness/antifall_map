@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="낙지도 로고">
+  <title>낙지도</title>
+  <!-- 낙지도 마크 — 발자국(낙상) + 지도 핀 + 낙지 다리 -->
+  <rect width="512" height="512" rx="112" fill="#1668C8"/>
+  <g fill="#fff">
+    <!-- 발가락 5개 -->
+    <ellipse cx="176" cy="128" rx="35" ry="45" transform="rotate(-10 176 128)"/>
+    <ellipse cx="243" cy="100" rx="22" ry="29" transform="rotate(-5 243 100)"/>
+    <ellipse cx="292" cy="109" rx="20" ry="26" transform="rotate(6 292 109)"/>
+    <ellipse cx="335" cy="128" rx="18" ry="24" transform="rotate(16 335 128)"/>
+    <ellipse cx="371" cy="157" rx="16" ry="21" transform="rotate(26 371 157)"/>
+    <!-- 지도 핀 (가운데 구멍은 evenodd로 뚫는다) -->
+    <path fill-rule="evenodd" d="
+      M232 408 C232 408 314 306 314 244 A82 82 0 1 0 150 244 C150 306 232 408 232 408 Z
+      M232 210 a35 35 0 1 0 0 70 a35 35 0 1 0 0-70 Z"/>
+    <!-- 낙지 다리 — 안쪽으로 말리는 소용돌이 -->
+    <path fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round" d="
+      M163 312 C118 322 96 356 112 378 C124 394 148 391 150 374 C151 363 140 359 134 366"/>
+    <path fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round" d="
+      M301 312 C346 322 368 356 352 378 C340 394 316 391 314 374 C313 363 324 359 330 366"/>
+    <!-- 바닥 궤적 — 왼쪽에서 감아 돌아 오른쪽 위로 빠진다 -->
+    <path fill="none" stroke="#fff" stroke-width="18" stroke-linecap="round" d="
+      M112 386 C132 438 300 452 372 392 C398 370 396 348 372 344"/>
+  </g>
+  <!-- 핀 아래쪽 눈 두 개 (배경색으로 파냄) -->
+  <g fill="#1668C8">
+    <circle cx="211" cy="322" r="11.5"/>
+    <circle cx="253" cy="322" r="11.5"/>
+  </g>
+</svg>
