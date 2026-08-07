@@ -7,14 +7,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Button, Card, DomainProgress, NoticeStrip, OptionButton, Radar, SignalBadge, StepPanel,
+  Button, Card, DomainProgress, Encouragement, NoticeStrip, OptionButton, Radar,
+  SignalBadge, StepPanel,
 } from "@/components/ui";
 import type { StepItem } from "@/components/ui";
 import { assessPrecision, assessSimple } from "@/lib/api";
 import {
   ALL_CARDS, DOMAINS, PRECISION_RESUME_INDEX, STEP_NAMES, TOTAL_Q,
 } from "@/lib/questions";
-import { computeScores, factorDesc, interpretation, levelColor, levelOf } from "@/lib/scoring";
+import {
+  SCORE_NOTE, computeScores, factorDesc, headline, interpretation, levelColor, levelOf, summaryLead,
+} from "@/lib/scoring";
 import { storage } from "@/lib/storage";
 import type { Answers, AssessResult, Profile } from "@/lib/types";
 
@@ -182,6 +185,7 @@ export default function PrecisionTestPage() {
                       label: d.name, done: counts[i], total: d.count,
                     }))} />
                   </div>
+                  <Encouragement step={totalDone} total={TOTAL_Q} />
                   <Question idx={idx} ans={ans} start={start} busy={busy}
                             setAnswer={setAnswer}
                             onPrev={() => setIdx(idx - 1)}
@@ -342,10 +346,14 @@ function Results({ name, ans, result, assessError, onRetry, router }: {
             <span style={{ fontSize: 16, color: "var(--ink-muted)" }}>점 / 100</span>
             <SignalBadge level={lv} />
           </div>
-          <div style={{ fontSize: 15.5, lineHeight: 1.6, maxWidth: 520 }}>
-            {name}님, {interpretation(lv, worst)}
+          <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.45, color }}>
+            {headline(lv)}
           </div>
-          <div style={{ fontSize: 12.5, color: "#9aa3b2" }}>
+          <div style={{ fontSize: 15.5, lineHeight: 1.6, maxWidth: 520 }}>
+            {name}님, {summaryLead(lv)} {interpretation(lv, worst)}
+          </div>
+          <div style={{ fontSize: 12.5, color: "#9aa3b2", lineHeight: 1.6 }}>
+            {SCORE_NOTE}<br />
             ※ 본 결과는 참고용 스크리닝이며 의료 진단을 대신하지 않습니다.
           </div>
         </div>

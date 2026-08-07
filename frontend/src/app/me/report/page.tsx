@@ -4,7 +4,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, NoticeStrip, Radar, SignalBadge } from "@/components/ui";
-import { computeScores, factorDesc, interpretation, levelColor, levelOf } from "@/lib/scoring";
+import {
+  SCORE_NOTE, computeScores, factorDesc, headline, interpretation, levelColor, levelOf, summaryLead,
+} from "@/lib/scoring";
 import { storage } from "@/lib/storage";
 import type { AssessmentRecord, Profile } from "@/lib/types";
 
@@ -92,10 +94,14 @@ export default function ReportPage() {
               )}
             </div>
           )}
-          <div style={{ fontSize: 15.5, lineHeight: 1.65, maxWidth: 560 }}>
-            {profile.name}님, {interpretation(lv, worst)}
+          <div style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.45 }}>
+            {headline(lv)}
           </div>
-          <div style={{ fontSize: 12.5, color: "#9aa3b2" }}>
+          <div style={{ fontSize: 15.5, lineHeight: 1.65, maxWidth: 560 }}>
+            {profile.name}님, {summaryLead(lv)} {interpretation(lv, worst)}
+          </div>
+          <div style={{ fontSize: 12.5, color: "#9aa3b2", lineHeight: 1.6 }}>
+            {SCORE_NOTE}<br />
             ※ 본 결과는 참고용 스크리닝이며 의료 진단을 대신하지 않습니다.
           </div>
         </div>

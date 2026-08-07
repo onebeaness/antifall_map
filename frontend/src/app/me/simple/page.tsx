@@ -8,7 +8,9 @@ import { useRouter } from "next/navigation";
 import { Button, Card, Gauge, HeaderBar, NoticeStrip, OptionButton, SignalBadge } from "@/components/ui";
 import { assessSimple } from "@/lib/api";
 import { SIMPLE_QUESTIONS } from "@/lib/questions";
-import { levelColor, levelOf, simpleFactors, simpleHeuristic, simpleMessage } from "@/lib/scoring";
+import {
+  headline, levelColor, levelOf, simpleFactors, simpleHeuristic, simpleMessage, summaryLead,
+} from "@/lib/scoring";
 import { storage } from "@/lib/storage";
 import type { Answers, AssessResult, Profile } from "@/lib/types";
 
@@ -103,8 +105,12 @@ export default function SimpleTestPage() {
             }}>
               재발 위험 <b style={{ color: levelColor(B) }}>{B}점</b> <SignalBadge level={levelOf(B)} />
             </div>
-            <div style={{ fontSize: 15.5, lineHeight: 1.65, marginTop: 18, textAlign: "left" }}>
-              {simpleMessage(lv)}
+            <div style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.45, marginTop: 18,
+                          textAlign: "left", color: levelColor(A) }}>
+              {headline(lv)}
+            </div>
+            <div style={{ fontSize: 15.5, lineHeight: 1.65, marginTop: 8, textAlign: "left" }}>
+              {summaryLead(lv)} {simpleMessage(lv)}
             </div>
             {result && (
               <div style={{ fontSize: 13, color: "var(--ink-muted)", marginTop: 10, textAlign: "left" }}>

@@ -2,7 +2,7 @@
 
 /** 랜딩 — 확정안 1b: 풀스크린 분할형 (IA.md 2.1, 정본: 랜딩 화면.dc.html). */
 import { useRouter } from "next/navigation";
-import { Button, HeaderBar, KpiCard, NoticeStrip } from "@/components/ui";
+import { Button, HeaderBar, NoticeStrip } from "@/components/ui";
 import { storage } from "@/lib/storage";
 
 const DOT = (color: string) => (
@@ -39,19 +39,19 @@ export default function LandingPage() {
           <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "1.5px", color: "#9fb0e6", marginBottom: 14 }}>
             시민 · 개인용
           </div>
-          <h1 style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-0.5px", margin: "0 0 14px" }}>
-            생활안전지도
+          <h1 style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-0.5px", margin: "0 0 14px", lineHeight: 1.35 }}>
+            천천히, 편안하게<br />건강 상태를 함께 살펴볼게요.
           </h1>
           <p style={{ fontSize: 16, lineHeight: 1.65, color: "#cfd6ee", margin: "0 0 26px" }}>
-            간단한 질문에 답하면 나의 낙상 위험도를 확인하고,<br />
-            우리 동네 안전 경로까지 안내받을 수 있습니다.
+            정답을 맞히는 검사가 아닙니다.<br />
+            평소 생활과 가장 가까운 답을 골라주시면 됩니다.
           </p>
-          <Bullet color="var(--good)" text="간단 테스트" sub="6문항 · 1분" />
-          <Bullet color="var(--warn)" text="정밀 테스트" sub="42문항 · AI 분석" />
-          <Bullet color="var(--danger)" text="경사도 히트맵" sub="안전 경로 안내" />
+          <Bullet color="var(--good)" text="간편 확인" sub="6문항 · 약 2분" />
+          <Bullet color="var(--warn)" text="심층 확인" sub="42문항 · 약 8~10분" />
+          <Bullet color="var(--danger)" text="보행 경로 안내" sub="경사가 낮은 길로" />
           <div style={{ marginTop: 26 }}>
             <Button variant="white" size="lg" onClick={goPersonal}>
-              개인용으로 시작하기 →
+              개인용 시작하기 →
             </Button>
           </div>
         </section>
@@ -61,21 +61,21 @@ export default function LandingPage() {
           <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: "1.5px", color: "var(--medical-blue)", marginBottom: 14 }}>
             기관 · 지자체용
           </div>
-          <h2 style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-0.5px", margin: "0 0 14px" }}>
-            지역 위험 대시보드
+          <h2 style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-0.5px", margin: "0 0 14px", lineHeight: 1.35 }}>
+            지역 안전 현황
           </h2>
           <p style={{ fontSize: 16, lineHeight: 1.65, color: "var(--ink-muted)", margin: "0 0 26px" }}>
-            고령 인구 특성과 지형 경사를 결합해 관내 위험 구간을<br />
-            분석하고, 예산 투입 우선순위를 제안합니다.
+            근거에 기반한 지역별 위험 현황과 정책 지원 화면입니다.<br />
+            자치구에서 행정동까지 좁혀 가며 살펴볼 수 있습니다.
           </p>
-          <div style={{ display: "flex", gap: 10, marginBottom: 26 }}>
-            <KpiCard value="25" label="관리 지역" />
-            <KpiCard value="8" label="우선 관리 구역" tone="danger" />
-            <KpiCard value="12,480" label="고위험 추정 인구" tone="warn" />
+          <Bullet color="var(--medical-blue)" text="보행환경 위험도" sub="자치구 25개 · 행정동 421개" />
+          <Bullet color="var(--warn)" text="인구·생활인구 연계" sub="통계청 · 서울 열린데이터" />
+          <Bullet color="var(--danger)" text="투입 효과 기대 지역" sub="위험도 × 유동인구" />
+          <div style={{ marginTop: 26 }}>
+            <Button variant="blue" size="lg" onClick={() => router.push("/dashboard")}>
+              기관용 살펴보기 →
+            </Button>
           </div>
-          <Button variant="blue" size="lg" onClick={() => router.push("/dashboard")}>
-            기관용으로 시작하기 →
-          </Button>
         </section>
       </div>
 

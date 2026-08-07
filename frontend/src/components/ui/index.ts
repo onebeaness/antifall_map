@@ -11,5 +11,6 @@ export { DomainProgress, type DomainProgressProps, type DomainSegment } from "./
 export { NoticeStrip, type NoticeStripProps } from "./NoticeStrip";
 export { HeaderBar, type HeaderBarProps } from "./HeaderBar";
 export { LogoMark } from "./LogoMark";
+export { Encouragement, encouragementFor } from "./Encouragement";
 export { TextField, type TextFieldProps } from "./TextField";
 export { Radar, type RadarProps } from "./Radar";

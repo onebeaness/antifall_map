@@ -73,7 +73,7 @@ export default function HubPage() {
               {profile.name}님의 낙상 위험 종합 확인
             </div>
             <div style={{ fontSize: 13.5, color: "var(--ink-muted)", marginTop: 2 }}>
-              간편 확인과 심층 확인 결과를 한곳에서 확인합니다
+              간편 확인과 심층 확인 결과를 한곳에서 살펴봅니다
             </div>
           </div>
         </div>
@@ -95,10 +95,12 @@ export default function HubPage() {
             두 가지를 함께 하실수록 정확해집니다
           </div>
           <div style={{ fontSize: 15, lineHeight: 1.7, color: "var(--ink-muted)" }}>
-            <b style={{ color: "var(--ink)" }}>간편 확인</b>은 6개 질문으로 1분 만에 낙상 위험도를 알려드립니다.{" "}
-            <b style={{ color: "var(--ink)" }}>심층 확인</b>은 신체 기능·질환·영양·마음 상태까지 6개 요소를
-            종합 분석합니다. 두 가지는 서로를 대체하지 않으며,{" "}
+            <b style={{ color: "var(--ink)" }}>간편 확인</b>은 6개 문항으로 약 2분,{" "}
+            <b style={{ color: "var(--ink)" }}>심층 확인</b>은 42개 문항으로 약 8~10분이 걸립니다.
+            심층 확인은 신체기능·질환·약물·감각·영양·마음까지 여섯 영역을 조금 더 자세히 살펴봅니다.
+            두 가지는 서로를 대체하지 않으며,{" "}
             <b style={{ color: "var(--ink)" }}>간편 확인을 먼저 마치면 심층 확인은 36문항만</b> 응답하면 됩니다.
+            정답을 맞히는 검사가 아니니, 평소 생활과 가장 가까운 답을 골라주시면 됩니다.
           </div>
         </div>
       </Card>
