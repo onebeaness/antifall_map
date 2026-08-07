@@ -24,6 +24,8 @@ export interface ChoroplethMapProps {
   activeGu: string | null;
   onGuChange: (gu: string | null) => void;
   onSelectDong?: (props: DongRiskProps) => void;
+  /** 현재 선택된 행정동 코드 — 검은 테두리로 강조한다 */
+  selectedKey?: string | null;
 }
 
 const HEIGHT = 460;
@@ -36,7 +38,7 @@ const fillOpacityOf = (risk: number | null) =>
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export default function ChoroplethMap({
-  guGeojson, dongGeojson, activeGu, onGuChange, onSelectDong,
+  guGeojson, dongGeojson, activeGu, onGuChange, onSelectDong, selectedKey,
 }: ChoroplethMapProps) {
   const ref = useRef<HTMLDivElement>(null);
   // Tmapv2.Map은 컨테이너를 div id 문자열로 받는다 (엘리먼트 전달은 버전에 따라 실패)
@@ -48,6 +50,8 @@ export default function ChoroplethMap({
   const nsRef = useRef<TmapNs>(null);
   /** 현재 레이어의 도형·라벨 — 단계가 바뀔 때 전부 지운다 */
   const overlaysRef = useRef<any[]>([]);
+  /** fitBounds를 이미 적용한 단계 — 같은 단계에서는 다시 맞추지 않는다 */
+  const fittedForRef = useRef<string | null | undefined>(undefined);
   // 콜백은 ref로 — 지도를 다시 만들지 않고 최신 핸들러를 쓴다
   const onGuChangeRef = useRef(onGuChange);
   onGuChangeRef.current = onGuChange;
@@ -83,6 +87,7 @@ export default function ChoroplethMap({
     return () => {
       cancelled = true;
       overlaysRef.current = [];
+      fittedForRef.current = undefined; // 지도를 다시 만들면 범위도 다시 맞춘다
       try { mapRef.current?.destroy?.(); } catch { /* 정리 실패는 무시 */ }
       mapRef.current = null;
       container.innerHTML = "";
@@ -119,12 +124,13 @@ export default function ChoroplethMap({
           if (lon > maxLon) maxLon = lon;
           return new T.LatLng(lat, lon);
         });
+        const picked = activeGu != null && (p as DongRiskProps).adm_cd2 === selectedKey;
         const polygon = new T.Polygon({
           paths: path,
           fillColor: riskColor(p.risk),
           fillOpacity: fillOpacityOf(p.risk),
-          strokeColor: "#ffffff",
-          strokeWeight: activeGu ? 1.2 : 1.8,
+          strokeColor: picked ? "#111418" : "#ffffff",
+          strokeWeight: picked ? 4 : activeGu ? 1.2 : 1.8,
           map,
         });
         polygon.addListener?.("click", () => {
@@ -151,8 +157,9 @@ export default function ChoroplethMap({
       overlaysRef.current.push(marker);
     }
 
-    // 그린 범위에 맞춰 화면 이동
-    if (minLat <= maxLat) {
+    // 화면 이동은 단계가 바뀔 때만 — 선택만 바뀔 때 지도가 튀지 않게 한다
+    if (minLat <= maxLat && fittedForRef.current !== activeGu) {
+      fittedForRef.current = activeGu;
       try {
         const bounds = new T.LatLngBounds(
           new T.LatLng(minLat, minLon), new T.LatLng(maxLat, maxLon));
@@ -162,7 +169,7 @@ export default function ChoroplethMap({
         map.setZoom?.(activeGu ? 13 : 11);
       }
     }
-  }, [activeGu, guGeojson, dongGeojson]);
+  }, [activeGu, guGeojson, dongGeojson, selectedKey]);
 
   /** 단계·데이터가 바뀌면 다시 그린다. 지도 생성 직후에도 한 번 돈다. */
   useEffect(() => {

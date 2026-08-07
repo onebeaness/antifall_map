@@ -22,7 +22,9 @@ import {
   riskColor, riskLevel, slopeNote, steepPercent,
 } from "@/lib/dongRisk";
 import { kakaoRoadviewUrl } from "@/lib/kakao";
-import type { CitywideFloating, DongRiskProps, Level, LightsResult } from "@/lib/types";
+import type {
+  CitywideFloating, DongRiskProps, GuRiskProps, Level, LightsResult,
+} from "@/lib/types";
 
 const ChoroplethMap = dynamic(() => import("@/components/ChoroplethMap"), { ssr: false });
 
@@ -80,21 +82,36 @@ export default function DashboardPage() {
       .sort((a, b) => (b.risk ?? 0) - (a.risk ?? 0)),
     [geojson]);
 
-  const counts = useMemo(() => ({
-    danger: dongs.filter((p) => riskLevel(p.risk) === "danger").length,
-    warn: dongs.filter((p) => riskLevel(p.risk) === "warn").length,
-    good: dongs.filter((p) => riskLevel(p.risk) === "good").length,
-  }), [dongs]);
+  const gus = useMemo(() =>
+    ((guGeojson?.features.map((f) => f.properties) ?? []) as GuRiskProps[])
+      .filter((p) => p.risk != null)
+      .sort((a, b) => (b.risk ?? 0) - (a.risk ?? 0)),
+    [guGeojson]);
 
-  /** 표는 지도의 드릴다운 단계를 따라간다 — 구를 열면 그 구의 동만 */
-  const topRows = useMemo(() => {
-    const scoped = activeGu ? dongs.filter((p) => p.sgg === activeGu) : dongs;
+  /** 표·KPI는 지도의 드릴다운 단계를 따라간다.
+   *  서울 전체 → 자치구 순위 / 구를 열면 → 그 구의 행정동 순위 */
+  const rankRows = useMemo(() => {
+    const scoped: (DongRiskProps | GuRiskProps)[] =
+      activeGu ? dongs.filter((p) => p.sgg === activeGu) : gus;
     const graded = filter === "전체"
       ? scoped : scoped.filter((p) => GRADE_LABEL[riskLevel(p.risk)] === filter);
-    return graded.slice(0, activeGu ? 30 : 12);
-  }, [dongs, filter, activeGu]);
-  const tableTitle = `${activeGu ? `${activeGu} ` : "위험 상위 "}`
-    + (filter === "전체" ? "행정동 (위험도순)" : `${filter} 등급 행정동 (위험도순)`);
+    return graded.slice(0, activeGu ? 30 : 25);
+  }, [dongs, gus, filter, activeGu]);
+
+  const counts = useMemo(() => {
+    const scope: (DongRiskProps | GuRiskProps)[] =
+      activeGu ? dongs.filter((p) => p.sgg === activeGu) : gus;
+    return {
+      total: scope.length,
+      danger: scope.filter((p) => riskLevel(p.risk) === "danger").length,
+      warn: scope.filter((p) => riskLevel(p.risk) === "warn").length,
+      good: scope.filter((p) => riskLevel(p.risk) === "good").length,
+    };
+  }, [dongs, gus, activeGu]);
+
+  const unit = activeGu ? "행정동" : "자치구";
+  const tableTitle = (activeGu ? `${activeGu} ` : "서울 ")
+    + (filter === "전체" ? `${unit} 순위 (위험도순)` : `${filter} 등급 ${unit} (위험도순)`);
 
   /** 투입 효과 기대 지수 = 위험도 × 일평균 생활인구 — 위험하면서 노출 인구가
    * 많은 동일수록 정비 투입 대비 낙상 감소 편익이 크다. */
@@ -182,7 +199,7 @@ export default function DashboardPage() {
       </div>
 
       <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-        <KpiCard value={`${dongs.length || "—"}`} label="분석 행정동" />
+        <KpiCard value={`${counts.total || "—"}`} label={`분석 ${unit}`} />
         <KpiCard value={`${counts.danger}`} label={`위험 (${RISK_DANGER}점 이상)`} tone="danger" />
         <KpiCard value={`${counts.warn}`} label={`주의 (${RISK_WARN}–${RISK_DANGER - 1}점)`} tone="warn" />
         <KpiCard value={`${counts.good}`} label={`양호 (${RISK_WARN}점 미만)`} tone="good" />
@@ -200,7 +217,8 @@ export default function DashboardPage() {
           {mounted && geojson && guGeojson
             ? <ChoroplethMap guGeojson={guGeojson} dongGeojson={geojson}
                              activeGu={activeGu} onGuChange={onGuChange}
-                             onSelectDong={onSelectDong} />
+                             onSelectDong={onSelectDong}
+                             selectedKey={selectedDong?.adm_cd2 ?? null} />
             : (
               <div style={{
                 height: 460, borderRadius: 14, background: "var(--track)",
@@ -240,33 +258,46 @@ export default function DashboardPage() {
           <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>
             {tableTitle}
             <span style={{ fontWeight: 500, color: "var(--ink-muted)", marginLeft: 6 }}>
-              {topRows.length}곳 표시
+              {rankRows.length}곳 · {activeGu ? "행을 누르면 상세" : "행을 누르면 행정동으로"}
             </span>
           </div>
           <div style={{ maxHeight: 470, overflow: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
               <thead>
                 <tr style={{ color: "var(--ink-muted)", textAlign: "left" }}>
-                  {["행정동", "위험도", "평균 경사", "급경사 구간", "현장"].map((h) => (
+                  {["순위", unit, "위험도", "평균 경사", "급경사 구간", "현장"].map((h) => (
                     <th key={h} style={{ padding: "6px 8px", borderBottom: "1px solid var(--line)", whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {topRows.map((p) => (
-                  <tr key={p.adm_cd2} style={{ borderBottom: "1px solid var(--track)" }}>
-                    <td style={{ padding: "8px 8px", fontWeight: 700, whiteSpace: "nowrap" }}>{p.name}</td>
-                    <td style={{ padding: "8px 8px", fontWeight: 800, color: `var(--${riskLevel(p.risk)})` }}>{p.risk}</td>
-                    <td style={{ padding: "8px 8px", fontSize: 12.5, color: "var(--ink-muted)" }}>{p.slope_mean ?? "—"}°</td>
-                    <td style={{ padding: "8px 8px", fontSize: 12.5, color: "var(--ink-muted)" }}>{steepPercent(p.steep_ratio)}</td>
-                    <td style={{ padding: "8px 8px", whiteSpace: "nowrap" }}>
-                      <a href={kakaoRoadviewUrl(p.lat, p.lon)} target="_blank" rel="noopener noreferrer"
-                         style={{ fontSize: 12.5, fontWeight: 700, color: "var(--medical-blue)", textDecoration: "underline" }}>
-                        로드뷰 ↗
-                      </a>
-                    </td>
-                  </tr>
-                ))}
+                {rankRows.map((p, i) => {
+                  const dong = activeGu ? (p as DongRiskProps) : null;
+                  const picked = dong != null && selectedDong?.adm_cd2 === dong.adm_cd2;
+                  return (
+                    <tr key={dong ? dong.adm_cd2 : (p as GuRiskProps).sgg}
+                        onClick={() => (dong ? onSelectDong(dong) : onGuChange(p.name))}
+                        style={{
+                          borderBottom: "1px solid var(--track)", cursor: "pointer",
+                          background: picked ? "var(--bg-slate)" : undefined,
+                        }}>
+                      <td style={{ padding: "8px 8px", color: "var(--ink-muted)" }}>{i + 1}</td>
+                      <td style={{ padding: "8px 8px", fontWeight: 700, whiteSpace: "nowrap" }}>
+                        {activeGu ? p.name.split(" ").pop() : p.name}
+                      </td>
+                      <td style={{ padding: "8px 8px", fontWeight: 800, color: `var(--${riskLevel(p.risk)})` }}>{p.risk}</td>
+                      <td style={{ padding: "8px 8px", fontSize: 12.5, color: "var(--ink-muted)" }}>{p.slope_mean ?? "—"}°</td>
+                      <td style={{ padding: "8px 8px", fontSize: 12.5, color: "var(--ink-muted)" }}>{steepPercent(p.steep_ratio)}</td>
+                      <td style={{ padding: "8px 8px", whiteSpace: "nowrap" }}>
+                        <a href={kakaoRoadviewUrl(p.lat, p.lon)} target="_blank" rel="noopener noreferrer"
+                           onClick={(e) => e.stopPropagation()}
+                           style={{ fontSize: 12.5, fontWeight: 700, color: "var(--medical-blue)", textDecoration: "underline" }}>
+                          로드뷰 ↗
+                        </a>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
