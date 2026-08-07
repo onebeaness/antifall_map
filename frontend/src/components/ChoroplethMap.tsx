@@ -2,9 +2,11 @@
 
 /** 서울 보행 경사위험도 choropleth — 자치구 → 행정동 드릴다운.
  *
- * 1단계: 자치구 25개. 이름 라벨을 상시 표시한다.
- * 2단계: 구를 클릭하면 그 구의 행정동만 남기고 확대 — 동 이름도 상시 표시.
- * 서울 421개 동을 한 번에 그리면 라벨이 서로 겹쳐 읽을 수 없어 이렇게 나눴다.
+ * 1단계: 자치구 25개. 2단계: 구를 클릭하면 그 구의 행정동만 남기고 확대.
+ * 서울 400여 개 동을 한 번에 그리면 색이 뭉개져 읽을 수 없어 이렇게 나눴다.
+ *
+ * 이름 라벨은 기본 꺼짐 — 배경지도의 상호·도로명과 겹쳐 오히려 가려서다.
+ * 필요할 때만 토글로 켠다.
  *
  * 색 구간은 lib/dongRisk.ts (무장애 설계기준 종단경사 기준). 자료 없는 구역은 회색.
  * 티맵(TMap) JS API v2 단독. dynamic import(ssr:false)로만 사용한다.
@@ -45,6 +47,8 @@ export default function ChoroplethMap({
   const mapId = `tmap-choro-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0); // "다시 시도" 누를 때마다 재로드
+  // 이름 라벨은 기본 꺼짐 — 배경지도 라벨과 겹쳐 시인성이 떨어진다
+  const [showLabels, setShowLabels] = useState(false);
 
   const mapRef = useRef<any>(null);
   const nsRef = useRef<TmapNs>(null);
@@ -141,20 +145,22 @@ export default function ChoroplethMap({
       }
 
       // 이름 라벨 — 구는 그대로, 동은 앞의 자치구명을 떼고 표시
-      const label = activeGu ? p.name.split(" ").pop() ?? p.name : p.name;
-      const icon = textIcon(label, activeGu ? 11.5 : 13);
-      const marker = new T.Marker({
-        position: new T.LatLng(p.lat, p.lon),
-        icon: icon.uri,
-        iconSize: new T.Size(icon.width, icon.height),
-        title: `${p.name} · 위험도 ${p.risk ?? "자료 없음"}`,
-        map,
-      });
-      marker.addListener?.("click", () => {
-        if (activeGu) onSelectDongRef.current?.(p as DongRiskProps);
-        else onGuChangeRef.current((p as GuRiskProps).name);
-      });
-      overlaysRef.current.push(marker);
+      if (showLabels) {
+        const label = activeGu ? p.name.split(" ").pop() ?? p.name : p.name;
+        const icon = textIcon(label, activeGu ? 11.5 : 13);
+        const marker = new T.Marker({
+          position: new T.LatLng(p.lat, p.lon),
+          icon: icon.uri,
+          iconSize: new T.Size(icon.width, icon.height),
+          title: `${p.name} · 위험도 ${p.risk ?? "자료 없음"}`,
+          map,
+        });
+        marker.addListener?.("click", () => {
+          if (activeGu) onSelectDongRef.current?.(p as DongRiskProps);
+          else onGuChangeRef.current((p as GuRiskProps).name);
+        });
+        overlaysRef.current.push(marker);
+      }
     }
 
     // 화면 이동은 단계가 바뀔 때만 — 선택만 바뀔 때 지도가 튀지 않게 한다
@@ -169,7 +175,7 @@ export default function ChoroplethMap({
         map.setZoom?.(activeGu ? 13 : 11);
       }
     }
-  }, [activeGu, guGeojson, dongGeojson, selectedKey]);
+  }, [activeGu, guGeojson, dongGeojson, selectedKey, showLabels]);
 
   /** 단계·데이터가 바뀌면 다시 그린다. 지도 생성 직후에도 한 번 돈다. */
   useEffect(() => {
@@ -187,6 +193,13 @@ export default function ChoroplethMap({
     return <MapUnavailable height={HEIGHT} reason={error}
                            onRetry={() => { setError(null); setAttempt((n) => n + 1); }} />;
   }
+  const overlayButton = {
+    padding: "8px 14px", borderRadius: 10, cursor: "pointer",
+    border: "1px solid var(--line)", fontFamily: "inherit",
+    fontSize: 13.5, fontWeight: 700,
+    boxShadow: "0 2px 8px rgba(0,0,0,.12)",
+  } as const;
+
   return (
     <div style={{ position: "relative" }}>
       <div id={mapId} ref={ref}
@@ -194,15 +207,21 @@ export default function ChoroplethMap({
       {activeGu && (
         <button type="button" onClick={() => onGuChange(null)}
                 style={{
-                  position: "absolute", top: 12, left: 12, zIndex: 10,
-                  padding: "8px 14px", borderRadius: 10, cursor: "pointer",
-                  border: "1px solid var(--line)", background: "rgba(255,255,255,.95)",
-                  fontFamily: "inherit", fontSize: 13.5, fontWeight: 700,
-                  boxShadow: "0 2px 8px rgba(0,0,0,.12)",
+                  ...overlayButton, position: "absolute", top: 12, left: 12, zIndex: 10,
+                  background: "rgba(255,255,255,.95)",
                 }}>
           ← 서울 전체
         </button>
       )}
+      <button type="button" onClick={() => setShowLabels((v) => !v)}
+              aria-pressed={showLabels}
+              style={{
+                ...overlayButton, position: "absolute", top: 12, right: 56, zIndex: 10,
+                background: showLabels ? "var(--gov-navy)" : "rgba(255,255,255,.95)",
+                color: showLabels ? "#fff" : "var(--ink)",
+              }}>
+        {showLabels ? "이름 끄기" : "이름 보기"}
+      </button>
     </div>
   );
 }

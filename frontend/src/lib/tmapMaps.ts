@@ -201,6 +201,21 @@ export function textIcon(
   return { uri: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, width, height };
 }
 
+/** 급경사 구간 라벨 — 빨간 알약에 "↑12%" 형태로 표시한다.
+ * 반투명 원으로 표시하던 때는 무슨 뜻인지 알 수 없어 라벨로 바꿨다. */
+export function steepIcon(text: string): { uri: string; width: number; height: number } {
+  const fontSize = 13;
+  const width = Math.ceil(text.length * fontSize * 0.68) + 20;
+  const height = 26;
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
+    `<rect x="1" y="1" width="${width - 2}" height="${height - 2}" rx="${(height - 2) / 2}" ` +
+    `fill="#d7191c" stroke="#fff" stroke-width="2"/>` +
+    `<text x="${width / 2}" y="${height * 0.68}" text-anchor="middle" fill="#fff" ` +
+    `font-family="system-ui,-apple-system,sans-serif" font-size="${fontSize}" font-weight="800">${text}</text></svg>`;
+  return { uri: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, width, height };
+}
+
 /** 색 점 마커 아이콘 — 외부 이미지 없이 data URI SVG로 생성 */
 export function dotIcon(color: string, size = 18): string {
   const r = size / 2;

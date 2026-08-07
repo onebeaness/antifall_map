@@ -31,7 +31,7 @@ export function slopeNote(slopeMean: number | null): string {
   return "권장기준 이내";
 }
 
-/** 급경사 비율(0~1)을 퍼센트 문자열로 */
-export function steepPercent(ratio: number | null): string {
+/** 기준 초과 비율(0~1)을 퍼센트 문자열로 */
+export function exceedPercent(ratio: number | null): string {
   return ratio == null ? "—" : `${(ratio * 100).toFixed(1)}%`;
 }

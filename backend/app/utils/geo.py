@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from bisect import bisect_left, bisect_right
+
 import math
 
 import numpy as np
@@ -58,21 +60,48 @@ def resample_route(
     return resampled, distances
 
 
-def compute_slopes(distances: list[float], elevations: list[float]) -> list[float]:
-    """구간별 경사도(%) 계산. 반환 길이는 len(points) - 1.
+#: 경사 계산 기준거리(m). DEM 한 셀(SRTM 30m)의 3배.
+SLOPE_BASELINE_M = 90.0
 
-    slope(%) = (고도차 / 수평거리) * 100
+
+def compute_slopes(distances: list[float], elevations: list[float],
+                   baseline_m: float = SLOPE_BASELINE_M) -> list[float]:
+    """구간별 경사도(%) 계산. 반환 길이는 len(distances) - 1.
+
+    ⚠️ 이웃한 두 샘플의 고도차로 바로 나누면 안 된다. 우리가 쓰는 SRTM은
+    30m 격자이고 리샘플링 간격도 30m라, 연속한 두 점이 같은 셀이나 바로
+    옆 셀에 걸린다. 게다가 SRTM은 지표가 아니라 **표면**을 담아서 도심에서는
+    옆 건물·비탈 높이가 셀 값에 섞인다. 그래서 평지 교차로가 12% 급경사로
+    잡히는 일이 생겼다 — 내가 갈 길이 아니라 길 옆 언덕을 읽은 것이다.
+
+    격자 하나로 분해할 수 없는 것을 억지로 읽지 않도록, 셀 크기의 3배
+    (기본 90m)를 기준거리로 잡아 그 구간의 평균 기울기를 쓴다. 보행자에게도
+    이쪽이 더 맞는 정보다 — 30m 단위 요철보다 "이 언덕을 오르는가"가 중요하다.
     """
+    n = len(distances)
+    if n < 2:
+        return []
+    half = baseline_m / 2
     slopes = []
-    for i in range(len(distances) - 1):
-        run = distances[i + 1] - distances[i]
-        rise = elevations[i + 1] - elevations[i]
+    for i in range(n - 1):
+        mid = (distances[i] + distances[i + 1]) / 2
+        lo = bisect_left(distances, mid - half)
+        hi = bisect_right(distances, mid + half) - 1
+        # 기준거리를 못 채우면(경로 끝) 가능한 만큼 넓힌다
+        lo = min(lo, i)
+        hi = max(hi, i + 1)
+        run = distances[hi] - distances[lo]
+        rise = elevations[hi] - elevations[lo]
         slopes.append((rise / run) * 100.0 if run > 0 else 0.0)
     return slopes
 
 
-def smooth(values: list[float], window: int = 3) -> list[float]:
-    """이동평균으로 노이즈 완화 (DEM 해상도 대비 촘촘한 샘플링 보정)."""
+def smooth(values: list[float], window: int = 5) -> list[float]:
+    """이동평균으로 노이즈 완화 (DEM 해상도 대비 촘촘한 샘플링 보정).
+
+    30m 격자 DEM을 30m 간격으로 읽으면 셀 경계에서 값이 계단처럼 튄다.
+    5점 평균이면 약 150m를 보므로 그 계단이 눌린다.
+    """
     if window <= 1 or len(values) < window:
         return list(values)
     arr = np.asarray(values, dtype=float)

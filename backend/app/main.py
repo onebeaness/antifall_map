@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import config
 from app.routers import assess, poi, population, route, safety, weather
 from app.services import fall_model
+from app.services import walkway
 
 app = FastAPI(
     title="낙지도 API",
@@ -58,4 +59,6 @@ def health() -> dict:
         "sgis_configured": bool(config.SGIS_CONSUMER_KEY and config.SGIS_CONSUMER_SECRET),
         "seoul_configured": bool(config.SEOUL_OPENAPI_KEY),
         "datagokr_configured": bool(config.DATA_GO_KR_KEY),
+        # 경로 경사의 1순위 출처 — 없으면 DEM(SRTM)으로 폴백한다
+        "walkway_index": walkway.point_count(),
     }

@@ -19,7 +19,7 @@ import { PopulationPanel, type SelectedDong } from "@/components/PopulationPanel
 import { getCitywideFloating, getLightsNear } from "@/lib/api";
 import {
   RISK_DANGER, RISK_WARN, SLOPE_MAX, SLOPE_RECOMMENDED,
-  riskColor, riskLevel, slopeNote, steepPercent,
+  riskColor, riskLevel, slopeNote, exceedPercent,
 } from "@/lib/dongRisk";
 import { kakaoRoadviewUrl } from "@/lib/kakao";
 import type {
@@ -184,7 +184,7 @@ export default function DashboardPage() {
             {activeGu ? `${activeGu} 행정동별 보행 경사위험도` : "자치구별 보행 경사위험도"}
           </div>
           <div style={{ fontSize: 13.5, color: "var(--ink-muted)", marginTop: 3 }}>
-            보행로 지점 185,114개의 경사 분석(자치구 25개 · 행정동 {dongs.length || 421}개)
+            생활 보행로 137,805개 지점의 경사 분석(자치구 25개 · 행정동 {dongs.length || 421}개)
             — 자치구 → 행정동 순으로 좁혀 가며 인구·조명까지 연계 분석합니다
           </div>
         </div>
@@ -246,11 +246,13 @@ export default function DashboardPage() {
             fontSize: 12, lineHeight: 1.65, color: "var(--ink-muted)",
             background: "var(--bg-slate)", borderRadius: 10, padding: "10px 12px", marginTop: 10,
           }}>
-            <b style={{ color: "var(--ink)" }}>산식</b> 경사위험도 = 100 × (0.5 × 상시부담 + 0.5 × 급경사노출).
-            상시부담 = min(1, 평균 경사 ÷ {SLOPE_MAX}°), 급경사노출 = 10° 이상 지점 비율.<br />
+            <b style={{ color: "var(--ink)" }}>산식</b> 경사위험도 = 100 × (0.5 × 상시부담 + 0.5 × 기준초과).
+            상시부담 = min(1, 평균 경사 ÷ {SLOPE_MAX}°), 기준초과 = {SLOPE_MAX}° 이상 지점 비율.<br />
             등급 경계는 무장애 설계기준 종단경사와 맞췄습니다 —
-            {" "}{RISK_WARN}점 = 권장 1/20({SLOPE_RECOMMENDED}°), {RISK_DANGER}점 = 최대 1/12({SLOPE_MAX}°).
-            경사는 DEM으로 보행로 185,114개 지점 전부 계산해 결측이 없습니다.
+            {" "}{RISK_WARN}점 = 권장 1/20({SLOPE_RECOMMENDED}°), {RISK_DANGER}점 = 최대 1/12({SLOPE_MAX}°).<br />
+            보도·보행자전용도로 137,805개 지점을 DEM으로 전수 계산했습니다.
+            등산로(북한산둘레길·사당능선 등 47,309개)는 생활 낙상과 무관해 제외했고,
+            보행로 표본이 10개 미만인 동은 값을 내지 않습니다(회색).
           </div>
         </Card>
 
@@ -265,7 +267,7 @@ export default function DashboardPage() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
               <thead>
                 <tr style={{ color: "var(--ink-muted)", textAlign: "left" }}>
-                  {["순위", unit, "위험도", "평균 경사", "급경사 구간", "현장"].map((h) => (
+                  {["순위", unit, "위험도", "평균 경사", "기준 초과", "최급경사 지점"].map((h) => (
                     <th key={h} style={{ padding: "6px 8px", borderBottom: "1px solid var(--line)", whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
@@ -287,9 +289,9 @@ export default function DashboardPage() {
                       </td>
                       <td style={{ padding: "8px 8px", fontWeight: 800, color: `var(--${riskLevel(p.risk)})` }}>{p.risk}</td>
                       <td style={{ padding: "8px 8px", fontSize: 12.5, color: "var(--ink-muted)" }}>{p.slope_mean ?? "—"}°</td>
-                      <td style={{ padding: "8px 8px", fontSize: 12.5, color: "var(--ink-muted)" }}>{steepPercent(p.steep_ratio)}</td>
+                      <td style={{ padding: "8px 8px", fontSize: 12.5, color: "var(--ink-muted)" }}>{exceedPercent(p.exceed_ratio)}</td>
                       <td style={{ padding: "8px 8px", whiteSpace: "nowrap" }}>
-                        <a href={kakaoRoadviewUrl(p.lat, p.lon)} target="_blank" rel="noopener noreferrer"
+                        <a href={kakaoRoadviewUrl(p.worst_lat ?? p.lat, p.worst_lon ?? p.lon)} target="_blank" rel="noopener noreferrer"
                            onClick={(e) => e.stopPropagation()}
                            style={{ fontSize: 12.5, fontWeight: 700, color: "var(--medical-blue)", textDecoration: "underline" }}>
                           로드뷰 ↗
@@ -312,9 +314,10 @@ export default function DashboardPage() {
             <>
               <b style={{ fontSize: 15 }}>{selectedDong.name}</b>
               <SignalBadge level={riskLevel(selectedDong.risk)} />
-              <a href={kakaoRoadviewUrl(selectedDong.lat, selectedDong.lon)} target="_blank" rel="noopener noreferrer"
+              <a href={kakaoRoadviewUrl(selectedDong.worst_lat ?? selectedDong.lat,
+                                     selectedDong.worst_lon ?? selectedDong.lon)} target="_blank" rel="noopener noreferrer"
                  style={{ fontSize: 13, fontWeight: 700, color: "var(--medical-blue)", textDecoration: "underline" }}>
-                현장 로드뷰 ↗
+                최급경사 지점 로드뷰 ↗
               </a>
             </>
           ) : (
@@ -346,15 +349,15 @@ export default function DashboardPage() {
                 </span>
                 <span style={{ fontWeight: 700, color: "var(--ink-muted)" }}>최대 경사</span>
                 <span><b style={{ fontSize: 15 }}>{selectedDong.slope_max ?? "—"}°</b></span>
-                <span style={{ fontWeight: 700, color: "var(--ink-muted)" }}>급경사 구간</span>
-                <span><b style={{ fontSize: 15 }}>{steepPercent(selectedDong.steep_ratio)}</b>
+                <span style={{ fontWeight: 700, color: "var(--ink-muted)" }}>기준 초과</span>
+                <span><b style={{ fontSize: 15 }}>{exceedPercent(selectedDong.exceed_ratio)}</b>
                   <span style={{ color: "var(--ink-muted)", marginLeft: 8, fontSize: 12.5 }}>
-                    10° 이상 지점 비율
+                    설계기준({SLOPE_MAX}°)을 넘는 지점 비율
                   </span>
                 </span>
               </div>
               <div style={{ fontSize: 12, color: "var(--ink-muted)", marginTop: 10 }}>
-                보행로 {selectedDong.points?.toLocaleString() ?? "—"}개 지점 · DEM 전 지점 계산
+                생활 보행로 {selectedDong.points?.toLocaleString() ?? "—"}개 지점 · DEM 전 지점 계산 · 등산로 제외
               </div>
               <div style={{ fontSize: 13, color: "var(--ink-muted)", marginTop: 12 }}>
                 {lights ? (
@@ -408,7 +411,7 @@ export default function DashboardPage() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
               <thead>
                 <tr style={{ color: "var(--ink-muted)", textAlign: "left" }}>
-                  {["순위", "행정동", "위험도", "일평균 유동인구", "효과지수", "평균 경사", "현장"].map((h) => (
+                  {["순위", "행정동", "위험도", "일평균 유동인구", "효과지수", "평균 경사", "최급경사 지점"].map((h) => (
                     <th key={h} style={{ padding: "6px 8px", borderBottom: "1px solid var(--line)", whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
@@ -423,7 +426,7 @@ export default function DashboardPage() {
                     <td style={{ padding: "8px 8px", fontWeight: 800, color: "var(--medical-blue)" }}>{r.effect.toLocaleString()}</td>
                     <td style={{ padding: "8px 8px", fontSize: 12.5, color: "var(--ink-muted)" }}>{r.slope_mean ?? "—"}°</td>
                     <td style={{ padding: "8px 8px", whiteSpace: "nowrap" }}>
-                      <a href={kakaoRoadviewUrl(r.lat, r.lon)} target="_blank" rel="noopener noreferrer"
+                      <a href={kakaoRoadviewUrl(r.worst_lat ?? r.lat, r.worst_lon ?? r.lon)} target="_blank" rel="noopener noreferrer"
                          style={{ fontSize: 12.5, fontWeight: 700, color: "var(--medical-blue)", textDecoration: "underline" }}>
                         로드뷰 ↗
                       </a>

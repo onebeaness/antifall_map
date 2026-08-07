@@ -60,6 +60,10 @@ export interface RouteResult {
   slopes: number[];
   total_distance_m: number;
   total_time_s: number;
+  /** 경사 출처 — walkway=보행로 실측(서울), dem=위성 고도모델(서울 밖 폴백) */
+  slope_source: "walkway" | "dem";
+  /** 보행로 지점에 붙은 좌표 수 */
+  matched_points: number;
 }
 
 /** GET /api/weather 응답 */
@@ -133,10 +137,14 @@ export interface DongRiskProps {
   slope_mean: number | null;
   /** 최대 경사(도) */
   slope_max: number | null;
-  /** 10° 이상 급경사 지점의 비율 0~1 */
-  steep_ratio: number | null;
+  /** 무장애 설계기준 최대 종단경사(4.76°)를 넘는 지점의 비율 0~1 */
+  exceed_ratio: number | null;
   /** 분석에 쓰인 보행로 지점 수 */
   points: number | null;
+  /** 가장 가파른 보행로 지점 — 로드뷰는 중심점 대신 여기를 가리킨다.
+   * 중심점은 큰길 한복판이라 평지인 경우가 많아 현장 확인에 쓸 수 없다. */
+  worst_lat: number | null;
+  worst_lon: number | null;
   lat: number;
   lon: number;
 }
@@ -148,8 +156,13 @@ export interface GuRiskProps {
   sgg: string;
   risk: number | null;
   slope_mean: number | null;
-  steep_ratio: number | null;
+  slope_max: number | null;
+  exceed_ratio: number | null;
   points: number | null;
+  /** 가장 가파른 보행로 지점 — 로드뷰는 중심점 대신 여기를 가리킨다.
+   * 중심점은 큰길 한복판이라 평지인 경우가 많아 현장 확인에 쓸 수 없다. */
+  worst_lat: number | null;
+  worst_lon: number | null;
   lat: number;
   lon: number;
 }

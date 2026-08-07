@@ -149,7 +149,7 @@ export default function RoutePage() {
         <div>
           <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.3px" }}>경로 경사도 히트맵</div>
           <div style={{ fontSize: 13.5, color: "var(--ink-muted)", marginTop: 4 }}>
-            경로를 검색하면 30m 간격 고도 데이터로 구간별 경사도를 계산해 지도에 표시합니다.
+            경로를 검색하면 서울 보행로 137,805개 지점의 실측 경사를 붙여 구간별로 표시합니다.
           </div>
         </div>
         <Button variant="ghost" onClick={() => router.push("/me")} style={{ minHeight: 44, fontSize: 14 }}>
@@ -176,7 +176,7 @@ export default function RoutePage() {
         </label>
         <div style={{ flex: 1, minWidth: 180 }}>
           <Button fullWidth disabled={!start || !end || busy} onClick={analyze}>
-            {busy ? "경로 검색·고도 조회 중... (수십 초 걸릴 수 있어요)" : "경로 경사도 분석"}
+            {busy ? "경로 검색·경사 분석 중..." : "경로 경사도 분석"}
           </Button>
         </div>
       </div>
@@ -299,10 +299,24 @@ export default function RoutePage() {
                     color: "#222", fontSize: 12,
                   }}>{SLOPE_LABELS[i]}</span>
                 ))}
+                <span style={{
+                  background: "#d7191c", color: "#fff", padding: "2px 10px",
+                  borderRadius: 999, fontSize: 12, fontWeight: 800,
+                }}>↑12%</span>
+                <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>
+                  9% 넘는 구간의 최고 지점 (↑오르막 ↓내리막)
+                </span>
               </div>
-              <div style={{ fontSize: 13, color: "var(--ink-muted)", marginTop: 8 }}>
-                경로 구간·급경사 원·지도의 아무 지점이나 클릭하면 <b>카카오 로드뷰</b>로
-                실제 도로 상태(계단·경사·노면)를 확인할 수 있습니다.
+              <div style={{ fontSize: 13, color: "var(--ink-muted)", marginTop: 8, lineHeight: 1.65 }}>
+                경로 구간·급경사 라벨·지도의 아무 지점이나 클릭하면 <b>카카오 로드뷰</b>로
+                실제 도로 상태(계단·경사·노면)를 확인할 수 있습니다.<br />
+                {result.slope_source === "walkway" ? (
+                  <>경사는 서울 보행로 {result.matched_points}개 지점의 <b>실측값</b>입니다
+                    — 길 위에서 잰 값이라 옆 건물·비탈의 영향을 받지 않습니다.</>
+                ) : (
+                  <>서울 밖 구간이라 위성 고도모델(SRTM 30m)로 추정했습니다
+                    — 도심에서는 건물 높이가 섞여 실제보다 가파르게 나올 수 있습니다.</>
+                )}
               </div>
             </Card>
 
