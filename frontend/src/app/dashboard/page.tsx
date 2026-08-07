@@ -331,7 +331,7 @@ export default function DashboardPage() {
                     <b style={{ color: "var(--ink)" }}>{lights.count}개</b>
                     {lights.truncated && " (일부 스캔 — 참고치)"}</>
                 ) : lightsMsg ? (
-                  <>보안등 데이터: {lightsMsg}</>
+                  <>야간 조명: {lightsMsg}</>
                 ) : (
                   <>보안등 밀도 조회 중...</>
                 )}

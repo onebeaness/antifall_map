@@ -18,7 +18,9 @@ def lights_near(
 ) -> dict:
     """중심 좌표 반경 내 보안등 수 — 야간 조명 밀도 분석용."""
     if not config.DATA_GO_KR_KEY:
-        raise HTTPException(status_code=503, detail="DATA_GO_KR_KEY가 설정되지 않았습니다.")
+        raise HTTPException(
+            status_code=503,
+            detail="보안등 자료가 아직 연결되지 않았습니다 (공공데이터포털 키 미설정).")
     try:
         return safety_lights.count_lights_near(
             config.DATA_GO_KR_KEY, lat, lon, radius_m, instt_nm=instt_nm)
