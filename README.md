@@ -119,7 +119,7 @@ npm run dev                  # http://localhost:3000
 
 ## PWA
 
-- `public/manifest.json` (안심걸음, 아이콘 192/512/maskable, `#1E2761`/`#F2F5FB`)
+- `public/manifest.json` (낙지도, 아이콘 192/512/maskable, `#1E2761`/`#F2F5FB`)
 - `public/sw.js` — 앱 셸 캐싱 + `/offline` 폴백. 문항 데이터는 번들에 포함되어
   오프라인 응답 가능, ML 결과 산출만 온라인 필요
 - iOS 홈스크린 대응(apple-touch-icon, apple-mobile-web-app meta)

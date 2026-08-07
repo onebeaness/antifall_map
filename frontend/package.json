@@ -2,7 +2,7 @@
   "name": "ansim-walk",
   "version": "1.0.0",
   "private": true,
-  "description": "안심걸음 — 노인 낙상 위험 예측 서비스 (Next.js PWA)",
+  "description": "낙지도 — 노인 낙상 위험 예측 서비스 (Next.js PWA)",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

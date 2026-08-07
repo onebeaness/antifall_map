@@ -1,7 +1,7 @@
 {
-  "name": "안심걸음 — 노인 낙상 위험 예측 서비스",
-  "short_name": "안심걸음",
-  "description": "낙상 위험 자가진단과 경사도 안전 경로를 한곳에서",
+  "name": "낙지도 — 노인 낙상 위험 예측 서비스",
+  "short_name": "낙지도",
+  "description": "낙상 위험 확인과 경사도 안전 경로를 한곳에서",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

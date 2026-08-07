@@ -1,4 +1,4 @@
--- 안심걸음 Supabase 스키마 (준비본 — 아직 미연결)
+-- 낙지도 Supabase 스키마 (준비본 — 아직 미연결)
 --
 -- 현재 앱은 localStorage(프론트 src/lib/storage.ts의 LocalStorageStorage)로 동작한다.
 -- Supabase 전환 시:

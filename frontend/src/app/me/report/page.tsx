@@ -1,6 +1,6 @@
 "use client";
 
-/** 정밀 진단 보고서 (IA.md 2.6) — 정밀 완료 시에만 접근. */
+/** 심층 확인 결과지 (IA.md 2.6) — 정밀 완료 시에만 접근. */
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, NoticeStrip, Radar, SignalBadge } from "@/components/ui";
@@ -32,12 +32,12 @@ export default function ReportPage() {
       <main className="container" style={{ display: "flex", justifyContent: "center", paddingTop: 80 }}>
         <Card variant="question" style={{ textAlign: "center" }}>
           <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 10 }}>
-            정밀 진단을 먼저 완료해 주세요
+            심층 확인을 먼저 완료해 주세요
           </div>
           <p style={{ fontSize: 15, color: "var(--ink-muted)", margin: "0 0 18px" }}>
-            보고서는 정밀 진단(42문항)을 마친 뒤에 열람할 수 있습니다.
+            보고서는 심층 확인(42문항)을 마친 뒤에 열람할 수 있습니다.
           </p>
-          <Button fullWidth onClick={() => router.push("/me")}>← 종합 진단으로</Button>
+          <Button fullWidth onClick={() => router.push("/me")}>← 종합 확인으로</Button>
         </Card>
       </main>
     );
@@ -56,13 +56,13 @@ export default function ReportPage() {
     <main className="container">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
         <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.3px" }}>
-          정밀 진단 보고서 · {profile.name}님
+          심층 확인 결과지 · {profile.name}님
           <span style={{ fontSize: 13.5, fontWeight: 500, color: "var(--ink-muted)", marginLeft: 10 }}>
-            {savedDate} 진단
+            {savedDate} 확인
           </span>
         </div>
         <Button variant="ghost" onClick={() => router.push("/me")} style={{ minHeight: 44, fontSize: 14 }}>
-          ← 종합 진단
+          ← 종합 확인
         </Button>
       </div>
 
@@ -127,7 +127,7 @@ export default function ReportPage() {
       </Card>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr 1.4fr", gap: 10, marginTop: 16 }}>
-        <Button variant="ghost" onClick={() => router.push("/me")}>종합 진단으로</Button>
+        <Button variant="ghost" onClick={() => router.push("/me")}>종합 확인으로</Button>
         <Button onClick={() => window.print()}>보고서 인쇄 · PDF 저장</Button>
         <Button variant="blue" onClick={() => router.push("/me/route")}>경사도 안전 경로 →</Button>
       </div>

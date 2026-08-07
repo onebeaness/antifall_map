@@ -7,7 +7,7 @@ export interface NoticeStripProps {
 
 /**
  * 하단 고지 스트립(필수 요소) — 파란 점 + 참고용 스크리닝 고지.
- * 진단 결과가 노출되는 모든 화면의 맨 아래에 배치한다.
+ * 확인 결과가 노출되는 모든 화면의 맨 아래에 배치한다.
  */
 export function NoticeStrip({ children }: NoticeStripProps) {
   return (
@@ -24,7 +24,7 @@ export function NoticeStrip({ children }: NoticeStripProps) {
     >
       <span style={{ width: 9, height: 9, borderRadius: "50%", background: "var(--medical-blue)", flex: "none" }} />
       <span style={{ fontSize: 14, color: "var(--ink-muted)" }}>
-        {children ?? "본 서비스의 진단 결과는 참고용 스크리닝이며 의료 진단을 대신하지 않습니다."}
+        {children ?? "본 서비스의 확인 결과는 참고용 스크리닝이며 의료 진단을 대신하지 않습니다."}
       </span>
     </div>
   );

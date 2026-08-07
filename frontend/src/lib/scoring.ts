@@ -45,7 +45,7 @@ export function iadlTotal(a: Answers): number {
   return IADL_ITEMS.reduce((s, [code]) => s + num(a[code], 1), 0);
 }
 
-// ── 간단 진단 예비 산식 (ML 미연결 폴백) ─────────────────────────────
+// ── 간편 확인 예비 산식 (ML 미연결 폴백) ─────────────────────────────
 export function simpleHeuristic(a: Answers): [number, number] {
   const age = num(a.age);
   const meds = num(a.drug_count);
@@ -66,7 +66,7 @@ export function simpleHeuristic(a: Answers): [number, number] {
   return [A, Math.max(0, Math.min(100, Math.round(B)))];
 }
 
-/** 간단 진단 주요 위험요인 리스트 */
+/** 간편 확인 주요 위험요인 리스트 */
 export function simpleFactors(a: Answers): { text: string; tone: number }[] {
   const out: { text: string; tone: number }[] = [];
   if (yes(a.mobility_aid)) out.push({ text: "이동보조기 사용 중", tone: 70 });
@@ -153,7 +153,7 @@ export function interpretation(lv: Level, worst: string): string {
   }[lv];
 }
 
-/** 간단 진단 결과 안내 문구 */
+/** 간편 확인 결과 안내 문구 */
 export function simpleMessage(lv: Level): string {
   return {
     danger: "낙상 위험이 높게 확인됩니다. 낙상에 각별히 주의하시고, 예방 운동과 함께 보건소·의료기관 상담을 권합니다.",

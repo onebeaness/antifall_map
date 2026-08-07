@@ -15,7 +15,7 @@ function levelColor(score: number): string {
 
 /**
  * 원형 위험도 게이지 — 디자인 정본 스펙(r=52, stroke 15, dasharray=score/100×326.7).
- * 진단 결과 히어로에 사용하며 점수 색은 신호등 등급을 따른다.
+ * 확인 결과 히어로에 사용하며 점수 색은 신호등 등급을 따른다.
  */
 export function Gauge({ score, size = 200, caption = "100점 만점" }: GaugeProps) {
   const s = Math.max(0, Math.min(100, Math.round(score)));

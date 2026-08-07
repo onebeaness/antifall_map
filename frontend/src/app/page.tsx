@@ -31,7 +31,7 @@ export default function LandingPage() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#fff" }}>
-      <HeaderBar title="안심걸음 — 노인 낙상 위험 예측 서비스" />
+      <HeaderBar title="낙지도 — 노인 낙상 위험 예측 서비스" />
 
       <div className="split" style={{ flex: 1 }}>
         {/* 좌: 시민 · 개인용 (네이비) */}

@@ -1,6 +1,6 @@
 "use client";
 
-/** 개인 종합 진단 허브 (IA.md 2.3, 정본: 종합 진단 화면.dc.html).
+/** 개인 종합 확인 허브 (IA.md 2.3, 정본: 종합 확인 화면.dc.html).
  * 간단·정밀 결과 카드 + 다음 행동. 정밀 완료 시 두 카드 모두 활성(정밀이 간단 포함). */
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -70,19 +70,19 @@ export default function HubPage() {
           <div style={{
             width: 38, height: 38, borderRadius: 9, background: "var(--gov-navy)", color: "#fff",
             display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 800,
-          }}>안</div>
+          }}>낙</div>
           <div>
             <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.3px" }}>
-              {profile.name}님의 종합 낙상 위험 진단
+              {profile.name}님의 낙상 위험 종합 확인
             </div>
             <div style={{ fontSize: 13.5, color: "var(--ink-muted)", marginTop: 2 }}>
-              간단 진단과 정밀 진단 결과를 한곳에서 확인합니다
+              간편 확인과 심층 확인 결과를 한곳에서 확인합니다
             </div>
           </div>
         </div>
         {simpleActive && (
           <Button variant="ghost" onClick={resetAll} style={{ minHeight: 44, fontSize: 14 }}>
-            진단 초기화
+            기록 지우기
           </Button>
         )}
       </div>
@@ -95,27 +95,27 @@ export default function HubPage() {
         }}>i</div>
         <div>
           <div style={{ fontSize: 16.5, fontWeight: 800, marginBottom: 8 }}>
-            두 가지 진단을 함께 받을수록 정확해집니다
+            두 가지를 함께 하실수록 정확해집니다
           </div>
           <div style={{ fontSize: 15, lineHeight: 1.7, color: "var(--ink-muted)" }}>
-            <b style={{ color: "var(--ink)" }}>간단 진단</b>은 6개 질문으로 1분 만에 낙상 위험도를 알려드립니다.{" "}
-            <b style={{ color: "var(--ink)" }}>정밀 진단</b>은 신체 기능·질환·영양·마음 상태까지 6개 요소를
-            종합 분석합니다. 두 진단은 서로를 대체하지 않으며,{" "}
-            <b style={{ color: "var(--ink)" }}>간단 진단을 먼저 마치면 정밀 진단은 36문항만</b> 응답하면 됩니다.
+            <b style={{ color: "var(--ink)" }}>간편 확인</b>은 6개 질문으로 1분 만에 낙상 위험도를 알려드립니다.{" "}
+            <b style={{ color: "var(--ink)" }}>심층 확인</b>은 신체 기능·질환·영양·마음 상태까지 6개 요소를
+            종합 분석합니다. 두 가지는 서로를 대체하지 않으며,{" "}
+            <b style={{ color: "var(--ink)" }}>간편 확인을 먼저 마치면 심층 확인은 36문항만</b> 응답하면 됩니다.
           </div>
         </div>
       </Card>
 
       {/* 결과 카드 2개 */}
       <div className="hub-grid" style={{ marginTop: 20 }}>
-        {/* 간단 진단 카드 */}
+        {/* 간편 확인 카드 */}
         <Card style={{ padding: 26 }}>
           {simpleActive && simpleRec ? (() => {
             const [A, B] = simpleAB(simpleRec, profile.fallExperience);
             const factors = simpleFactors(simpleRec.answers);
             return (
               <>
-                <CardHead overline="간편 스크리닝 · 6문항" title="간단 낙상 위험 진단" done />
+                <CardHead overline="간편 스크리닝 · 6문항" title="간편 확인" done />
                 <div style={{ height: 16 }} />
                 <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
                   <Gauge score={A} size={132} caption="/ 100" />
@@ -141,13 +141,13 @@ export default function HubPage() {
                 )}
                 <div style={{ height: 16 }} />
                 <Button variant="ghost" fullWidth onClick={() => router.push("/me/simple")}>
-                  간단 진단 다시 하기
+                  간편 확인 다시 하기
                 </Button>
               </>
             );
           })() : (
             <>
-              <CardHead overline="간편 스크리닝 · 6문항" title="간단 낙상 위험 진단" done={false} />
+              <CardHead overline="간편 스크리닝 · 6문항" title="간편 확인" done={false} />
               <div style={{ height: 16 }} />
               <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
                 <div className="shimmer" style={{
@@ -159,21 +159,21 @@ export default function HubPage() {
                 </div>
               </div>
               <div style={{ fontSize: 14, lineHeight: 1.6, color: "var(--ink-muted)", margin: "16px 0" }}>
-                아직 진단하지 않았습니다. 6개의 간단한 질문으로 지금 바로 위험도를 확인해 보세요.
+                아직 아직 확인하지 않았습니다. 6개의 간단한 질문으로 지금 바로 위험도를 확인해 보세요.
               </div>
-              <Button fullWidth onClick={() => router.push("/me/simple")}>간단 진단 시작하기 →</Button>
+              <Button fullWidth onClick={() => router.push("/me/simple")}>간편 확인 시작하기 →</Button>
             </>
           )}
         </Card>
 
-        {/* 정밀 진단 카드 */}
+        {/* 심층 확인 카드 */}
         <Card style={{ padding: 26 }}>
           {precisionActive && precision ? (() => {
             const { total: heur, scores } = computeScores(precision.answers);
             const total = precision.result?.pct_a ?? heur;
             return (
               <>
-                <CardHead overline="정밀 분석 · 6요소" title="정밀 낙상 위험 진단" done />
+                <CardHead overline="정밀 분석 · 6요소" title="심층 확인" done />
                 <div style={{ height: 16 }} />
                 <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
                   <Radar scores={scores} size={124} />
@@ -198,13 +198,13 @@ export default function HubPage() {
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10, marginTop: 16 }}>
                   <Button variant="ghost" onClick={() => router.push("/me/precision")}>다시 하기</Button>
-                  <Button onClick={() => router.push("/me/report")}>정밀 진단 보고서 조회하기 →</Button>
+                  <Button onClick={() => router.push("/me/report")}>심층 확인 결과지 조회하기 →</Button>
                 </div>
               </>
             );
           })() : (
             <>
-              <CardHead overline="정밀 분석 · 6요소" title="정밀 낙상 위험 진단" done={false} />
+              <CardHead overline="정밀 분석 · 6요소" title="심층 확인" done={false} />
               <div style={{ height: 16 }} />
               <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
                 <svg width="128" height="128" viewBox="0 0 128 128" className="shimmer" style={{ flex: "none" }}>
@@ -227,7 +227,7 @@ export default function HubPage() {
                     display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flex: "none",
                   }}>✓</span>
                   <div style={{ fontSize: 14, lineHeight: 1.5 }}>
-                    간단 진단을 마치셨어요 — 정밀 진단은 <b>남은 36문항</b>만 응답하면 됩니다.
+                    간편 확인을 마치셨어요 — 심층 확인은 <b>남은 36문항</b>만 응답하면 됩니다.
                   </div>
                 </div>
               ) : (
@@ -237,7 +237,7 @@ export default function HubPage() {
               )}
               <div style={{ height: 12 }} />
               <Button fullWidth onClick={() => router.push("/me/precision")}>
-                {simpleActive ? "정밀 진단 이어서 (36문항) →" : "정밀 진단 시작하기 →"}
+                {simpleActive ? "심층 확인 이어서 (36문항) →" : "심층 확인 시작하기 →"}
               </Button>
             </>
           )}

@@ -1,9 +1,9 @@
 import React from "react";
 
 export interface HeaderBarProps {
-  /** 서비스명 (예: "안심걸음 — 노인 낙상 위험 예측 서비스") */
+  /** 서비스명 (예: "낙지도 — 노인 낙상 위험 예측 서비스") */
   title: string;
-  /** 로고 마크 글자 (기본 "안") */
+  /** 로고 마크 글자 (기본 "낙") */
   mark?: string;
   /** 우측 끝 부가 요소 (예: "23 / 50 문항") */
   right?: React.ReactNode;
@@ -13,7 +13,7 @@ export interface HeaderBarProps {
  * 상단 64px 헤더 — 네이비 사각 로고(30×30, radius 8) + 서비스명 중앙 정렬.
  * 하단 1px 라인으로 본문과 구분한다.
  */
-export function HeaderBar({ title, mark = "안", right }: HeaderBarProps) {
+export function HeaderBar({ title, mark = "낙", right }: HeaderBarProps) {
   return (
     <div
       style={{

@@ -154,7 +154,7 @@ export default function RoutePage() {
           </div>
         </div>
         <Button variant="ghost" onClick={() => router.push("/me")} style={{ minHeight: 44, fontSize: 14 }}>
-          ← 종합 진단으로
+          ← 종합 확인으로
         </Button>
       </div>
 

@@ -1,4 +1,4 @@
-/* 안심걸음 디자인 시스템 — ansim-ui 이식 (원본: streamlit-slope/ansim-ui). */
+/* 낙지도 디자인 시스템 — ansim-ui 이식 (원본: streamlit-slope/ansim-ui). */
 
 export { Button, type ButtonProps } from "./Button";
 export { SignalBadge, type SignalBadgeProps } from "./SignalBadge";

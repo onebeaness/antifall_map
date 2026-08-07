@@ -1,7 +1,7 @@
 /** 설문 문항 데이터 — ML 확정본(2026-07-15, 팀원 배포용)의 42문항 구조.
  *
- * 간단 진단 6문항 + 심층 추가 36문항 = 정밀 42문항.
- * 간단 진단을 먼저 마치면 정밀 진단은 남은 36문항만 응답한다.
+ * 간편 확인 6문항 + 심층 추가 36문항 = 정밀 42문항.
+ * 간편 확인을 먼저 마치면 심층 확인은 남은 36문항만 응답한다.
  * 문항·선택지·인코딩 값은 ML 학습 데이터(dataset_v3)와 1:1 대응:
  *  - subjective_health/sleep_quality 1~5, 불편도 1~3, IADL 1~3(1~7번)·1~4(8~10번)
  *  - 성별 M/F, 예·아니오형 Y/N, 질환은 한글 라벨 배열
@@ -35,7 +35,7 @@ const DIFF3: [string, number][] = [["불편하지 않다", 1], ["불편한 편�
 const IADL3: [string, number][] = [["완전 자립", 1], ["부분 도움", 2], ["완전 도움", 3]];
 const IADL4: [string, number][] = [["완전 자립", 1], ["적은 부분 도움", 2], ["많은 부분 도움", 3], ["완전 도움", 4]];
 
-// ── 간단 진단 6문항 (ML 간략 6변수와 1:1) ────────────────────────────
+// ── 간편 확인 6문항 (ML 간략 6변수와 1:1) ────────────────────────────
 export const SIMPLE_QUESTIONS: (QuestionCard & { simpleSection: string })[] = [
   { code: "sex", simpleSection: "기본 정보", type: "choice", title: "성별을 선택해 주세요.",
     options: [["남성", "M"], ["여성", "F"]] },
@@ -117,8 +117,8 @@ export interface Domain {
   cards: QuestionCard[];
 }
 
-/** 정밀 진단 42문항 — 도메인 4개(10:14:6:12) + 5단계(AI 분석 결과).
- * 처음 6문항은 간단 진단과 동일(공통) — 간단 완료 시 건너뛴다. */
+/** 심층 확인 42문항 — 도메인 4개(10:14:6:12) + 5단계(AI 분석 결과).
+ * 처음 6문항은 간편 확인과 동일(공통) — 간단 완료 시 건너뛴다. */
 export const DOMAINS: Domain[] = [
   { name: "기본 정보", count: 10, lead: "기본 정보와 건강 상태를 여쭤봅니다", cards: [
     ...SIMPLE_QUESTIONS.map(({ simpleSection: _s, ...card }) => card),
@@ -158,12 +158,12 @@ export const DOMAINS: Domain[] = [
   },
 ];
 
-/** 도메인 인덱스와 카드를 평탄화 — 정밀 진단 진행 순서 */
+/** 도메인 인덱스와 카드를 평탄화 — 심층 확인 진행 순서 */
 export const ALL_CARDS: [number, QuestionCard][] =
   DOMAINS.flatMap((d, di) => d.cards.map((card) => [di, card] as [number, QuestionCard]));
 
 export const TOTAL_Q = DOMAINS.reduce((s, d) => s + d.count, 0); // 42
 export const STEP_NAMES = [...DOMAINS.map((d) => `${d.name}(${d.count}문항)`), "AI 분석 결과"];
 
-/** 간단 진단 완료 시 정밀 진단 시작 인덱스 — 공통 6문항 건너뛰기 */
+/** 간편 확인 완료 시 심층 확인 시작 인덱스 — 공통 6문항 건너뛰기 */
 export const PRECISION_RESUME_INDEX = SIMPLE_QUESTIONS.length; // 6

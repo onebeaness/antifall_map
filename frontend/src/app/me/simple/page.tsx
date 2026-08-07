@@ -1,6 +1,6 @@
 "use client";
 
-/** 간단 자가진단 6문항 (IA.md 2.4, 정본: 낙상 자가진단 설문앱.dc.html).
+/** 간편 확인 6문항 (IA.md 2.4, 정본: 낙상 자가진단 설문앱.dc.html).
  * 한 문항 집중형 — 진행바 + 문항 카드 + 이전/다음. 결과는 ML 간략 모델 A(+B).
  * 응답은 로컬에 자동 저장되어 이어서 진행할 수 있다. */
 import { useCallback, useEffect, useState } from "react";
@@ -86,12 +86,12 @@ export default function SimpleTestPage() {
     const factors = simpleFactors(ans);
     return (
       <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-        <HeaderBar title="간단 낙상 위험 진단" right={`${TOTAL} / ${TOTAL} 문항`} />
+        <HeaderBar title="간편 확인" right={`${TOTAL} / ${TOTAL} 문항`} />
         <main className="container" style={{ flex: 1 }}>
           <div style={{ height: 20 }} />
           <Card variant="question" style={{ textAlign: "center" }}>
             <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: ".4px", color: "var(--medical-blue)", marginBottom: 18 }}>
-              진단 결과 · 낙상 위험
+              확인 결과 · 낙상 위험
             </div>
             <div style={{ display: "flex", justifyContent: "center" }}>
               <Gauge score={A} />
@@ -130,7 +130,7 @@ export default function SimpleTestPage() {
               </div>
             )}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1.8fr", gap: 10, marginTop: 22 }}>
-              <Button variant="ghost" onClick={retry}>다시 진단</Button>
+              <Button variant="ghost" onClick={retry}>다시 확인하기</Button>
               <Button onClick={() => router.push("/me")}>종합 결과 보기 →</Button>
             </div>
           </Card>
@@ -150,7 +150,7 @@ export default function SimpleTestPage() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <HeaderBar title="간단 낙상 위험 진단" right={`${step} / ${TOTAL} 문항`} />
+      <HeaderBar title="간편 확인" right={`${step} / ${TOTAL} 문항`} />
       <main className="container" style={{ flex: 1 }}>
         <div className="progress-track" style={{ margin: "18px 0 26px" }}>
           <div className="progress-fill" style={{ width: `${((step - 1) / TOTAL) * 100}%` }} />

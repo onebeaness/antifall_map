@@ -15,7 +15,7 @@ export interface DomainProgressProps {
 }
 
 /**
- * 도메인별 분할 진행 바 — 정밀 진단 상단. 완료=초록, 진행 중=네이비 부분 채움,
+ * 도메인별 분할 진행 바 — 심층 확인 상단. 완료=초록, 진행 중=네이비 부분 채움,
  * 미시작=회색. 아래 라벨 줄에 "이름 N/M" 카운트가 붙는다.
  */
 export function DomainProgress({ segments }: DomainProgressProps) {

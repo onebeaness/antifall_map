@@ -15,7 +15,7 @@ export interface AppStorage {
   getPrecision(): Promise<AssessmentRecord | null>;
   savePrecision(r: AssessmentRecord): Promise<void>;
   clearPrecision(): Promise<void>;
-  /** 진단만 초기화 (프로필 유지) — 허브의 "진단 초기화" */
+  /** 진단만 초기화 (프로필 유지) — 허브의 "기록 지우기" */
   clearAssessments(): Promise<void>;
   clearAll(): Promise<void>;
 }

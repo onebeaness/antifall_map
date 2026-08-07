@@ -9,13 +9,13 @@ export default function OfflinePage() {
           width: 44, height: 44, borderRadius: 12, background: "var(--gov-navy)", color: "#fff",
           display: "inline-flex", alignItems: "center", justifyContent: "center",
           fontSize: 20, fontWeight: 800, marginBottom: 14,
-        }}>안</div>
+        }}>낙</div>
         <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.5px", margin: "0 0 10px" }}>
           네트워크 연결이 필요합니다
         </h1>
         <p style={{ fontSize: 15.5, lineHeight: 1.65, color: "var(--ink-muted)", margin: 0 }}>
           지금은 인터넷에 연결되어 있지 않아요.<br />
-          이미 열어 본 화면과 진단 문항은 계속 볼 수 있지만,<br />
+          이미 열어 본 화면과 확인 문항은 계속 볼 수 있지만,<br />
           AI 분석 결과 산출과 지도·날씨 조회에는 연결이 필요합니다.
         </p>
       </Card>

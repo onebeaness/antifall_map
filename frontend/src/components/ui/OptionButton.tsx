@@ -8,7 +8,7 @@ export interface OptionButtonProps extends React.ButtonHTMLAttributes<HTMLButton
 
 /**
  * 설문 선택지 버튼(라디오형). 미선택=회색 테두리·빈 점, 선택=네이비 강조·채워진 점.
- * 높이 54px+, 좌측 정렬 — 간단/정밀 진단의 모든 선택형 문항에 사용한다.
+ * 높이 54px+, 좌측 정렬 — 간단/심층 확인의 모든 선택형 문항에 사용한다.
  */
 export function OptionButton({ selected, children, style, ...rest }: OptionButtonProps) {
   return (

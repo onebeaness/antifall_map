@@ -17,7 +17,7 @@ function validBirth(b: string): boolean {
 }
 
 const BULLETS: [string, string][] = [
-  ["var(--good)", "간단·정밀 낙상 위험 자가진단"],
+  ["var(--good)", "간편·심층 낙상 위험 확인"],
   ["var(--warn)", "신호등 3단계 등급 · 맞춤 예방 가이드"],
   ["var(--danger)", "집 주변 경사도 히트맵 안전 경로"],
 ];
@@ -54,14 +54,14 @@ export default function RegisterPage() {
             <div style={{
               width: 44, height: 44, borderRadius: 12, background: "rgba(255,255,255,.14)",
               display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800,
-            }}>안</div>
-            <div style={{ fontSize: 18, fontWeight: 800 }}>안심걸음</div>
+            }}>낙</div>
+            <div style={{ fontSize: 18, fontWeight: 800 }}>낙지도</div>
           </div>
           <h1 style={{ fontSize: 32, fontWeight: 800, lineHeight: 1.35, letterSpacing: "-0.6px", margin: "0 0 18px" }}>
             낙상 위험 예측 서비스에<br />오신 것을 환영합니다
           </h1>
           <p style={{ fontSize: 16, lineHeight: 1.75, color: "#cfd6ee", margin: "0 0 22px" }}>
-            간단한 정보만 등록하면 나의 낙상 위험도를 진단하고, 맞춤 예방 안내와
+            간단한 정보만 등록하면 나의 낙상 위험도를 확인하고, 맞춤 예방 안내와
             안전한 보행 경로까지 한곳에서 확인할 수 있습니다.
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -80,7 +80,7 @@ export default function RegisterPage() {
             개인 정보 등록
           </div>
           <h2 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.5px", margin: "6px 0 18px" }}>
-            진단을 위해 정보를 등록해 주세요
+            확인을 위해 정보를 등록해 주세요
           </h2>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>

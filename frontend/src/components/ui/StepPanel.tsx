@@ -10,7 +10,7 @@ export interface StepItem {
 }
 
 export interface StepPanelProps {
-  /** 상단 오버라인 (예: "정밀 낙상 위험 진단") */
+  /** 상단 오버라인 (예: "심층 확인") */
   overline?: string;
   /** 큰 제목 (예: "김순자님\n50문항 중 23문항 완료") */
   title: string;
@@ -20,7 +20,7 @@ export interface StepPanelProps {
 }
 
 /**
- * 좌측 스텝 내비 패널(네이비) — 정밀 진단의 단계 이동 현황.
+ * 좌측 스텝 내비 패널(네이비) — 심층 확인의 단계 이동 현황.
  * 완료=초록 ✓, 진행 중=흰 원 + 하이라이트, 대기=45% 테두리 원 + 반투명.
  */
 export function StepPanel({ overline, title, steps, progress }: StepPanelProps) {

@@ -1,9 +1,9 @@
 "use client";
 
-/** 정밀 진단 42문항 (IA.md 2.5, 정본: 정밀 진단 화면.dc.html — 확정안 1a).
+/** 심층 확인 42문항 (IA.md 2.5, 정본: 심층 확인 화면.dc.html — 확정안 1a).
  * 좌측 스텝 내비 + 상단 도메인 분할 진행바 + 문항 카드.
  * 문항 구성은 ML 확정본(2026-07-15) 42문항: 공통 6 + 심층 36.
- * 간단 진단을 마친 경우 공통 6문항을 건너뛰고 36문항만 응답한다. */
+ * 간편 확인을 마친 경우 공통 6문항을 건너뛰고 36문항만 응답한다. */
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -57,7 +57,7 @@ export default function PrecisionTestPage() {
         }
       } catch { /* 초안 없음 */ }
       if (simple) {
-        // 간단 진단 응답 자동 반영 — 공통 6문항 건너뛰기
+        // 간편 확인 응답 자동 반영 — 공통 6문항 건너뛰기
         const pre: Answers = {};
         for (const code of SIMPLE_CODES) if (code in simple.answers) pre[code] = simple.answers[code];
         setAns(pre);
@@ -117,20 +117,20 @@ export default function PrecisionTestPage() {
       <main className="container" style={{ display: "flex", justifyContent: "center", paddingTop: 60 }}>
         <Card variant="question">
           <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: ".4px", color: "var(--medical-blue)" }}>
-            정밀 낙상 위험 진단 · {TOTAL_Q}문항
+            심층 확인 · {TOTAL_Q}문항
           </div>
           <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.5px", margin: "10px 0 8px" }}>
-            {name}님,<br />정밀 진단을 시작할까요?
+            {name}님,<br />심층 확인을 시작할까요?
           </div>
           <div style={{ fontSize: 15, color: "var(--ink-muted)", lineHeight: 1.65, marginBottom: 12 }}>
             신체 기능·질환·영양·마음 상태까지 6개 요소를 AI가 종합 분석합니다.{" "}
             {resumeFromSimple
-              ? <>간단 진단을 마치셨으므로 <b style={{ color: "var(--ink)" }}>남은 {remaining}문항</b>만 응답하면 됩니다.</>
+              ? <>간편 확인을 마치셨으므로 <b style={{ color: "var(--ink)" }}>남은 {remaining}문항</b>만 응답하면 됩니다.</>
               : <>약 10분 정도 걸립니다.</>}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1.8fr", gap: 10, marginTop: 8 }}>
             <Button variant="ghost" onClick={() => router.push("/me")}>← 돌아가기</Button>
-            <Button onClick={() => setIdx(start)}>진단 시작하기 →</Button>
+            <Button onClick={() => setIdx(start)}>확인 시작하기 →</Button>
           </div>
         </Card>
       </main>
@@ -157,7 +157,7 @@ export default function PrecisionTestPage() {
         <div className="precision-layout">
           <div className="desktop-only">
             <StepPanel
-              overline="정밀 낙상 위험 진단"
+              overline="심층 확인"
               title={`${name}님\n${TOTAL_Q}문항 중 ${totalDone}문항 완료`}
               steps={steps}
               progress={(totalDone / TOTAL_Q) * 100}
@@ -397,9 +397,9 @@ function Results({ name, ans, result, assessError, onRetry, router }: {
       </Card>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr 1.4fr", gap: 10 }}>
-        <Button variant="ghost" onClick={onRetry}>다시 진단</Button>
+        <Button variant="ghost" onClick={onRetry}>다시 확인하기</Button>
         <Button onClick={() => router.push("/me")}>종합 결과 보기 →</Button>
-        <Button variant="blue" onClick={() => router.push("/me/report")}>정밀 진단 보고서 →</Button>
+        <Button variant="blue" onClick={() => router.push("/me/report")}>심층 확인 결과지 →</Button>
       </div>
       <div style={{ height: 24 }} />
       <NoticeStrip />
