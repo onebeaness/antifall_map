@@ -14,3 +14,4 @@ export { LogoMark } from "./LogoMark";
 export { Encouragement, encouragementFor } from "./Encouragement";
 export { TextField, type TextFieldProps } from "./TextField";
 export { Radar, type RadarProps } from "./Radar";
+export { Disclosure, type DisclosureProps } from "./Disclosure";
