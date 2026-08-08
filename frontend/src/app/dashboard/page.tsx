@@ -448,6 +448,13 @@ export default function DashboardPage() {
         )}
       </Card>
 
+      <div style={{ marginTop: 18 }}>
+        <Button variant="ghost" onClick={() => router.push("/")}>← 처음 화면으로</Button>
+      </div>
+
+      <div style={{ height: 20 }} />
+      <NoticeStrip />
+
       {/* 산출 방식과 자료 — 본문 카드에는 숫자만 남기고, 계산 근거와 자료 설명은
        * 전부 여기(맨 아래)에 모은다. 화면 곳곳에 설명 문구를 흩어 두면 어지럽고,
        * 근거를 찾는 사람은 어차피 한 곳에서 몰아 읽는 편이 낫다. */}
@@ -600,13 +607,6 @@ export default function DashboardPage() {
             </Disclosure>
           </div>
       </Card>
-
-      <div style={{ marginTop: 18 }}>
-        <Button variant="ghost" onClick={() => router.push("/")}>← 처음 화면으로</Button>
-      </div>
-
-      <div style={{ height: 20 }} />
-      <NoticeStrip />
     </main>
   );
 }
