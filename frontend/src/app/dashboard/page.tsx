@@ -18,8 +18,9 @@ import { Button, Card, KpiCard, NoticeStrip, SignalBadge } from "@/components/ui
 import { PopulationPanel, type SelectedDong } from "@/components/PopulationPanel";
 import { getCitywideFloating, getLightsNear } from "@/lib/api";
 import {
-  RISK_DANGER, RISK_WARN, SLOPE_MAX_PCT, SLOPE_RECOMMENDED_PCT,
-  coverageText, hasEnough, ratioText, riskColor, riskLevel, slopeNote, slopeText,
+  RISK_DANGER, RISK_WARN, SLOPE_MAX_DEG, SLOPE_RECOMMENDED_DEG,
+  coverageText, hasEnough, ratioText, riskColor, riskLevel, slopeNote,
+  slopePercent, slopeText,
 } from "@/lib/dongRisk";
 import { kakaoRoadviewUrl } from "@/lib/kakao";
 import type {
@@ -247,9 +248,11 @@ export default function DashboardPage() {
             background: "var(--bg-slate)", borderRadius: 10, padding: "10px 12px", marginTop: 10,
           }}>
             <b style={{ color: "var(--ink)" }}>산식</b> 경사위험도 = 100 × (0.5 × 상시부담 + 0.5 × 기준초과).
-            상시부담 = min(1, 평균 경사 ÷ {SLOPE_MAX_PCT}%), 기준초과 = {SLOPE_MAX_PCT}% 이상 지점 비율.<br />
-            등급 경계는 무장애 설계기준 종단경사와 맞췄습니다 —
-            {" "}{RISK_WARN}점 = 권장 1/20({SLOPE_RECOMMENDED_PCT}%), {RISK_DANGER}점 = 최대 1/12({SLOPE_MAX_PCT}%).<br />
+            상시부담 = min(1, 평균 경사 ÷ {SLOPE_MAX_DEG}°), 기준초과 = {SLOPE_MAX_DEG}° 이상 지점 비율.<br />
+            등급 경계는 <b style={{ color: "var(--ink)" }}>장애인등편의법 시행규칙 별표1</b>의
+            접근로 기울기와 맞췄습니다 —
+            {" "}{RISK_WARN}점 = 권장 1/18({SLOPE_RECOMMENDED_DEG}°),
+            {" "}{RISK_DANGER}점 = 완화 한도 1/12({SLOPE_MAX_DEG}°).<br />
             보도·보행자전용도로 137,805개 지점을 DEM으로 전수 계산했습니다.
             등산로(북한산둘레길·사당능선 등 47,309개)는 생활 낙상과 무관해 제외했고,
             보행로 표본이 10개 미만인 동은 값을 내지 않습니다(회색).<br />
@@ -347,15 +350,19 @@ export default function DashboardPage() {
                 <span style={{ fontWeight: 700, color: "var(--ink-muted)" }}>평균 경사</span>
                 <span><b style={{ fontSize: 15 }}>{slopeText(selectedDong.slope_mean)}</b>
                   <span style={{ color: "var(--ink-muted)", marginLeft: 8, fontSize: 12.5 }}>
-                    {slopeNote(selectedDong.slope_mean)}
+                    기울기 {slopePercent(selectedDong.slope_mean)}% · {slopeNote(selectedDong.slope_mean)}
                   </span>
                 </span>
                 <span style={{ fontWeight: 700, color: "var(--ink-muted)" }}>최대 경사</span>
-                <span><b style={{ fontSize: 15 }}>{slopeText(selectedDong.slope_max)}</b></span>
+                <span><b style={{ fontSize: 15 }}>{slopeText(selectedDong.slope_max)}</b>
+                  <span style={{ color: "var(--ink-muted)", marginLeft: 8, fontSize: 12.5 }}>
+                    기울기 {slopePercent(selectedDong.slope_max)}%
+                  </span>
+                </span>
                 <span style={{ fontWeight: 700, color: "var(--ink-muted)" }}>기준 초과</span>
                 <span><b style={{ fontSize: 15 }}>{ratioText(selectedDong.exceed_ratio)}</b>
                   <span style={{ color: "var(--ink-muted)", marginLeft: 8, fontSize: 12.5 }}>
-                    1/12({SLOPE_MAX_PCT}%)를 넘는 지점 비율
+                    1/12({SLOPE_MAX_DEG}°)를 넘는 지점 비율
                   </span>
                 </span>
 

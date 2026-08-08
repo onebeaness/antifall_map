@@ -1,7 +1,8 @@
 "use client";
 
 /** 경사도 안전 경로 (IA.md 2.7) — Tmap POI 검색 → 경로 → 30m 리샘플링 →
- * 고도 → 구간 경사도(%) + 이동 날짜 날씨 카드. 모든 외부 API는 백엔드 프록시. */
+ * 보행로 실측 경사 → 구간별 경사(°) + 이동 날짜 날씨 카드.
+ * 모든 외부 API는 백엔드 프록시. 백엔드는 기울기(%)로 주고 화면은 도(°)로 표기한다. */
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -11,7 +12,7 @@ import { SlopeBars } from "@/components/charts/SlopeBars";
 import {
   analyzeRoute, getWeather, getWeatherWarnings, searchPoi,
 } from "@/lib/api";
-import { SLOPE_COLORS, SLOPE_LABELS } from "@/lib/geo";
+import { SLOPE_COLORS, SLOPE_LABELS, percentToDegrees } from "@/lib/geo";
 import type { Poi, RouteResult, WeatherInfo, WeatherWarning } from "@/lib/types";
 
 const RouteMap = dynamic(() => import("@/components/RouteMap"), { ssr: false });
@@ -141,7 +142,8 @@ export default function RoutePage() {
     setBusy(false);
   };
 
-  const absSlopes = result ? result.slopes.map((s) => Math.abs(s)) : [];
+  // 백엔드는 기울기(%)로 주고 화면은 도(°)로 보여준다
+  const absSlopes = result ? result.slopes.map((s) => Math.abs(percentToDegrees(s))) : [];
 
   return (
     <main className="container">
@@ -276,10 +278,11 @@ export default function RoutePage() {
           <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
             <KpiCard value={`${(result.total_distance_m / 1000).toFixed(2)} km`} label="총 거리" />
             <KpiCard value={`${(result.total_time_s / 60).toFixed(0)} 분`} label="예상 시간" />
-            <KpiCard value={`${(absSlopes.reduce((s, v) => s + v, 0) / absSlopes.length).toFixed(1)} %`}
+            <KpiCard value={`${(absSlopes.reduce((s, v) => s + v, 0) / absSlopes.length).toFixed(1)}°`}
                      label="평균 경사도" tone="blue" />
-            <KpiCard value={`${Math.max(...absSlopes).toFixed(1)} %`} label="최대 경사도"
-                     tone={Math.max(...absSlopes) >= 9 ? "danger" : Math.max(...absSlopes) >= 6 ? "warn" : "good"} />
+            <KpiCard value={`${Math.max(...absSlopes).toFixed(1)}°`} label="최대 경사도"
+                     tone={Math.max(...absSlopes) >= 4.8 ? "danger"
+                           : Math.max(...absSlopes) >= 3.2 ? "warn" : "good"} />
           </div>
 
           <div className="route-grid" style={{ marginTop: 16 }}>
@@ -302,14 +305,15 @@ export default function RoutePage() {
                 <span style={{
                   background: "#d7191c", color: "#fff", padding: "2px 10px",
                   borderRadius: 999, fontSize: 12, fontWeight: 800,
-                }}>↑12%</span>
+                }}>↑7.2°</span>
                 <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>
-                  9% 넘는 구간의 최고 지점 (↑오르막 ↓내리막)
+                  완화 한도(1/12, 4.8°)를 넘는 구간의 최고 지점 (↑오르막 ↓내리막)
                 </span>
               </div>
               <div style={{ fontSize: 13, color: "var(--ink-muted)", marginTop: 8, lineHeight: 1.65 }}>
                 경로 구간·급경사 라벨·지도의 아무 지점이나 클릭하면 <b>카카오 로드뷰</b>로
                 실제 도로 상태(계단·경사·노면)를 확인할 수 있습니다.<br />
+                경사는 도(°)로 표기합니다 — 설계기준 1/18 = 3.2°, 1/12 = 4.8°.<br />
                 {result.slope_source === "walkway" ? (
                   <>경사는 서울 보행로 {result.matched_points}개 지점의 <b>실측값</b>입니다
                     — 길 위에서 잰 값이라 옆 건물·비탈의 영향을 받지 않습니다.</>
@@ -340,7 +344,8 @@ export default function RoutePage() {
                         <tr style={{ color: "var(--ink-muted)", textAlign: "right" }}>
                           <th style={{ padding: "4px 8px", textAlign: "right" }}>누적거리 (m)</th>
                           <th style={{ padding: "4px 8px", textAlign: "right" }}>고도 (m)</th>
-                          <th style={{ padding: "4px 8px", textAlign: "right" }}>경사도 (%)</th>
+                          <th style={{ padding: "4px 8px", textAlign: "right" }}>경사 (°)</th>
+                          <th style={{ padding: "4px 8px", textAlign: "right" }}>기울기 (%)</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -348,7 +353,8 @@ export default function RoutePage() {
                           <tr key={i} style={{ borderTop: "1px solid var(--track)", textAlign: "right" }}>
                             <td style={{ padding: "4px 8px" }}>{Math.round(result.distances[i + 1])}</td>
                             <td style={{ padding: "4px 8px" }}>{result.elevations[i + 1].toFixed(1)}</td>
-                            <td style={{ padding: "4px 8px", fontWeight: 700 }}>{s.toFixed(2)}</td>
+                            <td style={{ padding: "4px 8px", fontWeight: 700 }}>{percentToDegrees(s).toFixed(2)}</td>
+                            <td style={{ padding: "4px 8px", color: "var(--ink-muted)" }}>{s.toFixed(1)}</td>
                           </tr>
                         ))}
                       </tbody>

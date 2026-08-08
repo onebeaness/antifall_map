@@ -1,12 +1,12 @@
 "use client";
 
 /** 경로 경사도 지도 — 티맵(TMap) JS API v2 단독.
- * 구간별 색상 폴리라인 + 급경사 라벨(↑12%) + 출발/도착 마커 +
+ * 구간별 색상 폴리라인 + 급경사 라벨(↑7.2°) + 출발/도착 마커 +
  * 클릭 팝업(카카오 로드뷰 링크). 키가 없거나 SDK 로드 실패 시 안내 패널 표시.
  * dynamic import(ssr:false)로만 사용한다. */
 import { useEffect, useId, useRef, useState } from "react";
 import { MapUnavailable } from "@/components/MapUnavailable";
-import { slopeColor } from "@/lib/geo";
+import { percentToDegrees, slopeColor } from "@/lib/geo";
 import { mapPopupHtml } from "@/lib/kakao";
 import { dotIcon, eventLatLon, loadTmap, steepIcon, type TmapNs } from "@/lib/tmapMaps";
 
@@ -76,7 +76,9 @@ export default function RouteMap({
             strokeWeight: 6,
             map,
           });
-          const label = `경사 ${slopes[i] >= 0 ? "+" : ""}${slopes[i].toFixed(1)}% · 고도 ${elevations[i].toFixed(0)}m`;
+          const deg = percentToDegrees(slopes[i]);
+          const label = `경사 ${deg >= 0 ? "오르막" : "내리막"} ${Math.abs(deg).toFixed(1)}°`
+            + ` (기울기 ${Math.abs(slopes[i]).toFixed(1)}%) · 고도 ${elevations[i].toFixed(0)}m`;
           line.addListener?.("click", () =>
             openPopup(label, points[i][0], points[i][1], true));
         }
@@ -84,27 +86,29 @@ export default function RouteMap({
         // 급경사 강조 — 예전에는 반투명 원을 깔았는데 무슨 뜻인지 알 수 없다는
         // 지적이 있었다. 이어진 급경사 구간마다 가장 가파른 지점 하나에만
         // "↑12%" 같은 라벨을 세워 그 자리에서 읽히게 한다.
-        const STEEP = 9; // % — 이 값부터 고령자에게 부담이 큰 구간으로 본다
+        // 장애인등편의법 별표1의 완화 한도(1/12 = 4.8°)를 넘는 구간을 짚는다
+        const STEEP_DEG = 4.8;
+        const degOf = (i: number) => percentToDegrees(slopes[i]);
         for (let i = 0; i < slopes.length; ) {
-          if (Math.abs(slopes[i]) < STEEP) { i++; continue; }
+          if (Math.abs(degOf(i)) < STEEP_DEG) { i++; continue; }
           let peak = i;
           let j = i;
-          while (j < slopes.length && Math.abs(slopes[j]) >= STEEP) {
-            if (Math.abs(slopes[j]) > Math.abs(slopes[peak])) peak = j;
+          while (j < slopes.length && Math.abs(degOf(j)) >= STEEP_DEG) {
+            if (Math.abs(degOf(j)) > Math.abs(degOf(peak))) peak = j;
             j++;
           }
-          const value = slopes[peak];
-          const text = `${value >= 0 ? "↑" : "↓"}${Math.abs(value).toFixed(0)}%`;
+          const value = degOf(peak);
+          const text = `${value >= 0 ? "↑" : "↓"}${Math.abs(value).toFixed(1)}°`;
           const icon = steepIcon(text);
           const marker = new T.Marker({
             position: ll(points[peak]),
             icon: icon.uri,
             iconSize: new T.Size(icon.width, icon.height),
-            title: `${value >= 0 ? "오르막" : "내리막"} ${Math.abs(value).toFixed(1)}% 구간`,
+            title: `${value >= 0 ? "오르막" : "내리막"} ${Math.abs(value).toFixed(1)}° 구간`,
             map,
           });
           marker.addListener?.("click", () =>
-            openPopup(`${value >= 0 ? "오르막" : "내리막"} ${Math.abs(value).toFixed(1)}% 구간`,
+            openPopup(`${value >= 0 ? "오르막" : "내리막"} ${Math.abs(value).toFixed(1)}° 구간`,
                       points[peak][0], points[peak][1], true));
           i = j;
         }
