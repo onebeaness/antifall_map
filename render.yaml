@@ -1,0 +1,47 @@
+# Render Blueprint — 백엔드(FastAPI + ML) 배포 설정
+#
+# 사용법: Render 대시보드 → New → Blueprint → 이 저장소 연결 → 브랜치 선택
+# 키(sync: false)는 저장소에 넣지 않고 Render 대시보드에서 직접 입력한다.
+#
+# 프론트엔드(Next.js)는 Cloudflare Pages 또는 Vercel에 별도 배포하고,
+# 환경변수 NEXT_PUBLIC_API_BASE 에 이 서비스의 URL을 넣는다.
+
+services:
+  - type: web
+    name: ansim-api
+    runtime: python
+    rootDir: backend
+    plan: free # 무료: 15분 미사용 시 sleep(첫 요청 ~1분). 상시 가동은 starter로 변경
+    region: singapore # 한국에서 가장 가까운 리전
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.9" # ML 휠 호환성 확인된 버전
+
+      # 프론트 도메인 (쉼표 구분). 대시보드에서 직접 관리한다 —
+      # 여기에 value를 적으면 Blueprint가 sync될 때마다 그 값으로 덮어써서,
+      # 대시보드에 넣어둔 배포 도메인이 사라진다.
+      - key: CORS_ORIGINS
+        sync: false
+
+      # ↓ 값은 Render 대시보드 Environment 탭에서 입력 (저장소에 노출 금지)
+      - key: TMAP_APP_KEY
+        sync: false
+      # 브라우저 지도(JS API v2)용 appKey — /api/config/map 으로 프론트에 내려간다.
+      # 비워두면 TMAP_APP_KEY로 폴백한다.
+      - key: TMAP_JS_APP_KEY
+        sync: false
+      - key: VWORLD_API_KEY
+        sync: false
+      - key: KWEATHER_API_KEY
+        sync: false
+      - key: SGIS_CONSUMER_KEY
+        sync: false
+      - key: SGIS_CONSUMER_SECRET
+        sync: false
+      - key: SEOUL_OPENAPI_KEY
+        sync: false
+      - key: DATA_GO_KR_KEY
+        sync: false
