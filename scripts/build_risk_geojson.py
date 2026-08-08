@@ -21,7 +21,18 @@ path는 전부 등산로다. 전체의 25.6%를 차지하면서 경사 평균을
 로드뷰로 보면 평평하다. 등산로 경사는 고령자의 생활 낙상 위험과 무관하므로
 footway·pedestrian만 남긴다.
 
-## 2. 기준 초과 비율 (구 '급경사 비율')
+## 2. 폭·재질은 점수에 넣지 않고 참고 정보로만 싣는다
+
+폭·재질은 현장에서 기록해야 하는 값이라 결측이 많다(생활 보행로 기준
+폭 26.7%, 재질 32.6%). 표본이 몇 개뿐인 동에서는 지수가 0과 100 사이를
+튀어서 점수에 넣으면 순위를 망친다. 그렇다고 감추면 "보도블록·폭 정보가
+없다"는 지적을 받는다. 그래서 **점수에서는 빼되 값은 싣고, 기록 지점 수를
+항상 함께 내려보낸다.** 화면에서 표본이 부족하면 숫자 대신 그 사실을 알린다.
+
+재질위험점수는 재질별 고정 매핑이다 (아스콘 1 / 블록·아스콘블록 2 /
+콘크리트 3 / 비포장 4). 측정값이 아니라 분류값이라는 점을 화면에도 밝힌다.
+
+## 3. 기준 초과 비율 (구 '급경사 비율')
 
 원본의 급경사 판정은 10° 이상인데, 이는 등산로 기준이다. 보도에서 10°는
 거의 나오지 않아(생활 보행로 기준 2.9%) 지표가 무뎌진다. 무장애 설계기준
@@ -46,7 +57,7 @@ from __future__ import annotations
 import json
 import statistics
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 OUT = Path(__file__).resolve().parent.parent / "frontend/public/geo"
@@ -57,14 +68,14 @@ MIN_POINTS = 10      # 이보다 적으면 표본 부족으로 판단해 값을 
 COORD_DIGITS = 5     # 약 1m — 행정구역 경계에는 충분하고 용량을 크게 줄인다
 
 
-def collect(points_path: str) -> dict[str, list[tuple[float, float, float]]]:
-    """보행로 지점을 행정동 코드별 (경사, 위도, 경도) 목록으로 모은다 (스트리밍).
+def collect(points_path: str) -> dict[str, list[dict]]:
+    """보행로 지점을 행정동 코드별 목록으로 모은다 (스트리밍).
 
     좌표까지 들고 있는 이유: 로드뷰 링크를 동 중심점이 아니라 **가장 가파른
     지점**으로 걸기 위해서다. 중심점은 큰길 한복판이라 평지인 경우가 많아,
     가파르다고 표시된 동을 로드뷰로 열면 평평해 보이는 문제가 있었다.
     """
-    by_dong: dict[str, list[tuple[float, float, float]]] = defaultdict(list)
+    by_dong: dict[str, list[dict]] = defaultdict(list)
     kept = skipped = 0
     with open(points_path, encoding="utf-8") as fh:
         for line in fh:
@@ -79,28 +90,58 @@ def collect(points_path: str) -> dict[str, list[tuple[float, float, float]]]:
             if slope is None or not code:
                 continue
             lon, lat = json.loads(line)["geometry"]["coordinates"][:2]
-            by_dong[code].append((float(slope), lat, lon))
+            by_dong[code].append({
+                "slope": float(slope), "lat": lat, "lon": lon,
+                "width": p.get("보행로폭"),          # 결측 많음 — 점수에 안 씀
+                "narrow": p.get("협소여부"),
+                "surface": p.get("노면재질"),
+            })
             kept += 1
     print(f"보행로 지점 {kept:,}개 집계 (등산로 등 {skipped:,}개 제외)")
     return by_dong
 
 
-def stats(points: list[tuple[float, float, float]]) -> dict:
-    """(경사, 위도, 경도) 목록 → 지표. 표본이 적으면 risk를 내지 않는다."""
+#: 미끄럼 위험이 있다고 보는 재질위험점수 (블록 2 / 콘크리트 3 / 비포장 4)
+SLIPPERY_FROM = 2.0
+SURFACE_RISK = {"아스콘": 1.0, "블록": 2.0, "아스콘/블록": 2.0, "콘크리트": 3.0, "비포장": 4.0}
+
+
+def stats(points: list[dict]) -> dict:
+    """지점 목록 → 지표. 경사만 점수에 넣고, 폭·재질은 참고 정보로 붙인다."""
     n = len(points)
-    slopes = [s for s, _, _ in points]
+    slopes = [q["slope"] for q in points]
     mean = statistics.fmean(slopes)
     exceed = sum(1 for s in slopes if s >= BF_MAX) / n
     risk = (None if n < MIN_POINTS
             else round(100 * (0.5 * min(1.0, mean / BF_MAX) + 0.5 * exceed)))
-    worst = max(points)  # 경사가 가장 큰 지점 — 로드뷰로 바로 확인할 자리
-    return {"risk": risk, "slope_mean": round(mean, 1), "slope_max": round(worst[0], 1),
-            "exceed_ratio": round(exceed, 3), "points": n,
-            "worst_lat": round(worst[1], 5), "worst_lon": round(worst[2], 5)}
+    worst = max(points, key=lambda q: q["slope"])  # 로드뷰로 바로 확인할 자리
+
+    widths = [float(q["width"]) for q in points
+              if q["width"] is not None and float(q["width"]) > 0]
+    narrows = [q["narrow"] for q in points if q["narrow"] is not None]
+    surfaces = [q["surface"] for q in points if q["surface"]]
+    top_surface = Counter(surfaces).most_common(1)[0][0] if surfaces else None
+    slippery = [s for s in surfaces if SURFACE_RISK.get(s, 0) >= SLIPPERY_FROM]
+
+    return {
+        "risk": risk, "slope_mean": round(mean, 1), "slope_max": round(worst["slope"], 1),
+        "exceed_ratio": round(exceed, 3), "points": n,
+        "worst_lat": round(worst["lat"], 5), "worst_lon": round(worst["lon"], 5),
+        # ── 참고 정보 (점수 미반영). *_n 은 실제로 기록된 지점 수 ──
+        "width_n": len(widths),
+        "width_mean": round(statistics.fmean(widths), 1) if widths else None,
+        "narrow_ratio": (round(sum(1 for x in narrows if x) / len(narrows), 3)
+                         if narrows else None),
+        "surface_n": len(surfaces),
+        "surface_top": top_surface,
+        "slippery_ratio": round(len(slippery) / len(surfaces), 3) if surfaces else None,
+    }
 
 
 EMPTY = {"risk": None, "slope_mean": None, "slope_max": None,
-         "exceed_ratio": None, "points": 0, "worst_lat": None, "worst_lon": None}
+         "exceed_ratio": None, "points": 0, "worst_lat": None, "worst_lon": None,
+         "width_n": 0, "width_mean": None, "narrow_ratio": None,
+         "surface_n": 0, "surface_top": None, "slippery_ratio": None}
 
 
 def round_coords(node):
@@ -127,7 +168,7 @@ def main(points_src: str, dong_src: str, gu_src: str) -> None:
     by_dong = collect(points_src)
 
     dongs = []
-    by_sgg: dict[str, list[tuple[float, float, float]]] = defaultdict(list)
+    by_sgg: dict[str, list[dict]] = defaultdict(list)
     for feature in json.loads(Path(dong_src).read_text(encoding="utf-8"))["features"]:
         p = feature["properties"]
         pts = by_dong.get(p["adm_cd"], [])

@@ -18,8 +18,8 @@ import { Button, Card, KpiCard, NoticeStrip, SignalBadge } from "@/components/ui
 import { PopulationPanel, type SelectedDong } from "@/components/PopulationPanel";
 import { getCitywideFloating, getLightsNear } from "@/lib/api";
 import {
-  RISK_DANGER, RISK_WARN, SLOPE_MAX, SLOPE_RECOMMENDED,
-  riskColor, riskLevel, slopeNote, exceedPercent,
+  RISK_DANGER, RISK_WARN, SLOPE_MAX_PCT, SLOPE_RECOMMENDED_PCT,
+  coverageText, hasEnough, ratioText, riskColor, riskLevel, slopeNote, slopeText,
 } from "@/lib/dongRisk";
 import { kakaoRoadviewUrl } from "@/lib/kakao";
 import type {
@@ -247,12 +247,15 @@ export default function DashboardPage() {
             background: "var(--bg-slate)", borderRadius: 10, padding: "10px 12px", marginTop: 10,
           }}>
             <b style={{ color: "var(--ink)" }}>산식</b> 경사위험도 = 100 × (0.5 × 상시부담 + 0.5 × 기준초과).
-            상시부담 = min(1, 평균 경사 ÷ {SLOPE_MAX}°), 기준초과 = {SLOPE_MAX}° 이상 지점 비율.<br />
+            상시부담 = min(1, 평균 경사 ÷ {SLOPE_MAX_PCT}%), 기준초과 = {SLOPE_MAX_PCT}% 이상 지점 비율.<br />
             등급 경계는 무장애 설계기준 종단경사와 맞췄습니다 —
-            {" "}{RISK_WARN}점 = 권장 1/20({SLOPE_RECOMMENDED}°), {RISK_DANGER}점 = 최대 1/12({SLOPE_MAX}°).<br />
+            {" "}{RISK_WARN}점 = 권장 1/20({SLOPE_RECOMMENDED_PCT}%), {RISK_DANGER}점 = 최대 1/12({SLOPE_MAX_PCT}%).<br />
             보도·보행자전용도로 137,805개 지점을 DEM으로 전수 계산했습니다.
             등산로(북한산둘레길·사당능선 등 47,309개)는 생활 낙상과 무관해 제외했고,
-            보행로 표본이 10개 미만인 동은 값을 내지 않습니다(회색).
+            보행로 표본이 10개 미만인 동은 값을 내지 않습니다(회색).<br />
+            <b style={{ color: "var(--ink)" }}>보도 폭·노면 재질은 점수에 넣지 않습니다</b> —
+            현장 기록 기반이라 결측이 많아(폭 26.7%, 재질 32.6%) 표본이 적은 곳에서
+            값이 크게 흔들립니다. 참고로만 표시하고 기록 지점 수를 함께 적습니다.
           </div>
         </Card>
 
@@ -288,8 +291,8 @@ export default function DashboardPage() {
                         {activeGu ? p.name.split(" ").pop() : p.name}
                       </td>
                       <td style={{ padding: "8px 8px", fontWeight: 800, color: `var(--${riskLevel(p.risk)})` }}>{p.risk}</td>
-                      <td style={{ padding: "8px 8px", fontSize: 12.5, color: "var(--ink-muted)" }}>{p.slope_mean ?? "—"}°</td>
-                      <td style={{ padding: "8px 8px", fontSize: 12.5, color: "var(--ink-muted)" }}>{exceedPercent(p.exceed_ratio)}</td>
+                      <td style={{ padding: "8px 8px", fontSize: 12.5, color: "var(--ink-muted)" }}>{slopeText(p.slope_mean)}</td>
+                      <td style={{ padding: "8px 8px", fontSize: 12.5, color: "var(--ink-muted)" }}>{ratioText(p.exceed_ratio)}</td>
                       <td style={{ padding: "8px 8px", whiteSpace: "nowrap" }}>
                         <a href={kakaoRoadviewUrl(p.worst_lat ?? p.lat, p.worst_lon ?? p.lon)} target="_blank" rel="noopener noreferrer"
                            onClick={(e) => e.stopPropagation()}
@@ -342,19 +345,48 @@ export default function DashboardPage() {
               <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "9px 14px",
                             alignItems: "baseline", fontSize: 13.5, marginTop: 16 }}>
                 <span style={{ fontWeight: 700, color: "var(--ink-muted)" }}>평균 경사</span>
-                <span><b style={{ fontSize: 15 }}>{selectedDong.slope_mean ?? "—"}°</b>
+                <span><b style={{ fontSize: 15 }}>{slopeText(selectedDong.slope_mean)}</b>
                   <span style={{ color: "var(--ink-muted)", marginLeft: 8, fontSize: 12.5 }}>
                     {slopeNote(selectedDong.slope_mean)}
                   </span>
                 </span>
                 <span style={{ fontWeight: 700, color: "var(--ink-muted)" }}>최대 경사</span>
-                <span><b style={{ fontSize: 15 }}>{selectedDong.slope_max ?? "—"}°</b></span>
+                <span><b style={{ fontSize: 15 }}>{slopeText(selectedDong.slope_max)}</b></span>
                 <span style={{ fontWeight: 700, color: "var(--ink-muted)" }}>기준 초과</span>
-                <span><b style={{ fontSize: 15 }}>{exceedPercent(selectedDong.exceed_ratio)}</b>
+                <span><b style={{ fontSize: 15 }}>{ratioText(selectedDong.exceed_ratio)}</b>
                   <span style={{ color: "var(--ink-muted)", marginLeft: 8, fontSize: 12.5 }}>
-                    설계기준({SLOPE_MAX}°)을 넘는 지점 비율
+                    1/12({SLOPE_MAX_PCT}%)를 넘는 지점 비율
                   </span>
                 </span>
+
+                {/* 폭·재질은 현장 기록 기반이라 결측이 많다 — 점수에 넣지 않고
+                    참고로만 보여주되, 기록 지점 수를 반드시 함께 적는다. */}
+                <span style={{ fontWeight: 700, color: "var(--ink-muted)" }}>보도 폭</span>
+                {hasEnough(selectedDong.width_n) ? (
+                  <span><b style={{ fontSize: 15 }}>{selectedDong.width_mean}m</b>
+                    <span style={{ color: "var(--ink-muted)", marginLeft: 8, fontSize: 12.5 }}>
+                      좁은 구간 {ratioText(selectedDong.narrow_ratio)} ·{" "}
+                      {coverageText(selectedDong.width_n, selectedDong.points)}
+                    </span>
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>
+                    표본 부족 — {coverageText(selectedDong.width_n, selectedDong.points)}
+                  </span>
+                )}
+                <span style={{ fontWeight: 700, color: "var(--ink-muted)" }}>노면 재질</span>
+                {hasEnough(selectedDong.surface_n) ? (
+                  <span><b style={{ fontSize: 15 }}>{selectedDong.surface_top}</b>
+                    <span style={{ color: "var(--ink-muted)", marginLeft: 8, fontSize: 12.5 }}>
+                      미끄러운 재질 {ratioText(selectedDong.slippery_ratio)} ·{" "}
+                      {coverageText(selectedDong.surface_n, selectedDong.points)}
+                    </span>
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>
+                    표본 부족 — {coverageText(selectedDong.surface_n, selectedDong.points)}
+                  </span>
+                )}
               </div>
               <div style={{ fontSize: 12, color: "var(--ink-muted)", marginTop: 10 }}>
                 생활 보행로 {selectedDong.points?.toLocaleString() ?? "—"}개 지점 · DEM 전 지점 계산 · 등산로 제외
@@ -424,7 +456,7 @@ export default function DashboardPage() {
                     <td style={{ padding: "8px 8px", fontWeight: 800, color: `var(--${riskLevel(r.risk)})` }}>{r.risk}</td>
                     <td style={{ padding: "8px 8px" }}>{r.avgPop.toLocaleString()}명</td>
                     <td style={{ padding: "8px 8px", fontWeight: 800, color: "var(--medical-blue)" }}>{r.effect.toLocaleString()}</td>
-                    <td style={{ padding: "8px 8px", fontSize: 12.5, color: "var(--ink-muted)" }}>{r.slope_mean ?? "—"}°</td>
+                    <td style={{ padding: "8px 8px", fontSize: 12.5, color: "var(--ink-muted)" }}>{slopeText(r.slope_mean)}</td>
                     <td style={{ padding: "8px 8px", whiteSpace: "nowrap" }}>
                       <a href={kakaoRoadviewUrl(r.worst_lat ?? r.lat, r.worst_lon ?? r.lon)} target="_blank" rel="noopener noreferrer"
                          style={{ fontSize: 12.5, fontWeight: 700, color: "var(--medical-blue)", textDecoration: "underline" }}>

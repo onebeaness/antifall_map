@@ -141,6 +141,15 @@ export interface DongRiskProps {
   exceed_ratio: number | null;
   /** 분석에 쓰인 보행로 지점 수 */
   points: number | null;
+  /** ── 참고 정보 (위험도 점수 미반영) ──
+   * 폭·재질은 현장 기록 기반이라 결측이 많다. *_n 은 실제 기록된 지점 수로,
+   * 이 값이 작으면 평균을 믿을 수 없어 화면에서 숫자를 감춘다. */
+  width_n: number;
+  width_mean: number | null;
+  narrow_ratio: number | null;
+  surface_n: number;
+  surface_top: string | null;
+  slippery_ratio: number | null;
   /** 가장 가파른 보행로 지점 — 로드뷰는 중심점 대신 여기를 가리킨다.
    * 중심점은 큰길 한복판이라 평지인 경우가 많아 현장 확인에 쓸 수 없다. */
   worst_lat: number | null;
@@ -159,6 +168,15 @@ export interface GuRiskProps {
   slope_max: number | null;
   exceed_ratio: number | null;
   points: number | null;
+  /** ── 참고 정보 (위험도 점수 미반영) ──
+   * 폭·재질은 현장 기록 기반이라 결측이 많다. *_n 은 실제 기록된 지점 수로,
+   * 이 값이 작으면 평균을 믿을 수 없어 화면에서 숫자를 감춘다. */
+  width_n: number;
+  width_mean: number | null;
+  narrow_ratio: number | null;
+  surface_n: number;
+  surface_top: string | null;
+  slippery_ratio: number | null;
   /** 가장 가파른 보행로 지점 — 로드뷰는 중심점 대신 여기를 가리킨다.
    * 중심점은 큰길 한복판이라 평지인 경우가 많아 현장 확인에 쓸 수 없다. */
   worst_lat: number | null;
