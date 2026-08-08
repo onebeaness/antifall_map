@@ -18,9 +18,7 @@ import { Button, Card, KpiCard, NoticeStrip, SignalBadge } from "@/components/ui
 import { PopulationPanel, type SelectedDong } from "@/components/PopulationPanel";
 import { getCitywideFloating } from "@/lib/api";
 import {
-  RISK_DANGER, RISK_WARN, SLOPE_MAX_DEG, SLOPE_RECOMMENDED_DEG,
-  coverageText, hasEnough, ratioText, riskColor, riskLevel, slopeNote,
-  slopePercent, slopeText,
+  RISK_DANGER, RISK_WARN, SLOPE_MAX_DEG, SLOPE_RECOMMENDED_DEG, hasEnough, ratioText, riskColor, riskLevel, slopeNote, slopePercent, slopeText,
 } from "@/lib/dongRisk";
 import { kakaoRoadviewUrl } from "@/lib/kakao";
 import type { CitywideFloating, DongRiskProps, GuRiskProps, Level } from "@/lib/types";
@@ -378,42 +376,49 @@ export default function DashboardPage() {
                   </span>
                 </span>
                 <span style={{ fontWeight: 700, color: "var(--ink-muted)" }}>기준 초과</span>
-                <span><b style={{ fontSize: 15 }}>{ratioText(selectedDong.exceed_ratio)}</b>
+                <span><b style={{ fontSize: 15 }}>{selectedDong.exceed_n.toLocaleString()}곳</b>
                   <span style={{ color: "var(--ink-muted)", marginLeft: 8, fontSize: 12.5 }}>
-                    1/12({SLOPE_MAX_DEG}°)를 넘는 지점 비율
+                    전체 {selectedDong.points?.toLocaleString()}곳 중 · 1/12({SLOPE_MAX_DEG}°) 초과
                   </span>
                 </span>
 
-                {/* 폭·재질은 현장 기록 기반이라 결측이 많다 — 점수에 넣지 않고
-                    참고로만 보여주되, 기록 지점 수를 반드시 함께 적는다. */}
+                {/* 폭·재질은 기록된 지점에서만 알 수 있다. 경사(전체)와 분모가
+                    달라 비율을 나란히 놓으면 잘못 읽히므로 개수로 적고
+                    분모를 각 줄에 함께 밝힌다. */}
+                <span style={{ fontWeight: 700, color: "var(--ink-muted)" }}>협소 구간</span>
+                {hasEnough(selectedDong.width_n) ? (
+                  <span><b style={{ fontSize: 15 }}>{selectedDong.narrow_n.toLocaleString()}곳</b>
+                    <span style={{ color: "var(--ink-muted)", marginLeft: 8, fontSize: 12.5 }}>
+                      폭 확인 {selectedDong.width_n.toLocaleString()}곳 중 · 1.5m 이하
+                      {selectedDong.narrow_ratio
+                        ? ` → 위험도 +${Math.round(selectedDong.narrow_ratio * 40)}점` : ""}
+                    </span>
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>폭 확인 자료 없음</span>
+                )}
+
                 <span style={{ fontWeight: 700, color: "var(--ink-muted)" }}>보도 폭</span>
                 {hasEnough(selectedDong.width_n) ? (
                   <span><b style={{ fontSize: 15 }}>{selectedDong.width_mean}m</b>
                     <span style={{ color: "var(--ink-muted)", marginLeft: 8, fontSize: 12.5 }}>
-                      협소(1.5m 이하) {ratioText(selectedDong.narrow_ratio)}
-                      {selectedDong.narrow_ratio
-                        ? ` → 위험도 +${Math.round(selectedDong.narrow_ratio * 40)}점`
-                        : ""} ·{" "}
-                      {coverageText(selectedDong.width_n, selectedDong.points)}
+                      폭 확인 {selectedDong.width_n.toLocaleString()}곳 평균
                     </span>
                   </span>
                 ) : (
-                  <span style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>
-                    표본 부족 — {coverageText(selectedDong.width_n, selectedDong.points)}
-                  </span>
+                  <span style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>—</span>
                 )}
-                <span style={{ fontWeight: 700, color: "var(--ink-muted)" }}>노면 재질</span>
+
+                <span style={{ fontWeight: 700, color: "var(--ink-muted)" }}>미끄러운 노면</span>
                 {hasEnough(selectedDong.surface_n) ? (
-                  <span><b style={{ fontSize: 15 }}>{selectedDong.surface_top}</b>
+                  <span><b style={{ fontSize: 15 }}>{selectedDong.slippery_n.toLocaleString()}곳</b>
                     <span style={{ color: "var(--ink-muted)", marginLeft: 8, fontSize: 12.5 }}>
-                      미끄러운 재질 {ratioText(selectedDong.slippery_ratio)} ·{" "}
-                      {coverageText(selectedDong.surface_n, selectedDong.points)}
+                      재질 확인 {selectedDong.surface_n.toLocaleString()}곳 중 ·
+                      주로 {selectedDong.surface_top}
                     </span>
                   </span>
                 ) : (
-                  <span style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>
-                    표본 부족 — {coverageText(selectedDong.surface_n, selectedDong.points)}
-                  </span>
+                  <span style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>재질 확인 자료 없음</span>
                 )}
               </div>
               <div style={{ fontSize: 12, color: "var(--ink-muted)", marginTop: 10 }}>

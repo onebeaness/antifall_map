@@ -143,15 +143,23 @@ export interface DongRiskProps {
   exceed_ratio: number | null;
   /** 분석에 쓰인 보행로 지점 수 */
   points: number | null;
+  /** 설계기준(4.8°)을 넘는 지점 수 — 화면은 비율 대신 개수로 보여준다.
+   * 세 비율의 분모가 서로 달라(전체 / 폭 기록분 / 재질 기록분) 나란히 놓으면
+   * 잘못 읽히기 때문이다. 개수는 각 줄에 분모를 함께 적어 오해가 없다. */
+  exceed_n: number;
   /** ── 참고 정보 (위험도 점수 미반영) ──
    * 폭·재질은 현장 기록 기반이라 결측이 많다. *_n 은 실제 기록된 지점 수로,
    * 이 값이 작으면 평균을 믿을 수 없어 화면에서 숫자를 감춘다. */
   width_n: number;
   width_mean: number | null;
   narrow_ratio: number | null;
+  /** 폭이 확인된 지점 중 1.5m 이하인 수 */
+  narrow_n: number;
   surface_n: number;
   surface_top: string | null;
   slippery_ratio: number | null;
+  /** 재질이 확인된 지점 중 미끄러운 재질인 수 */
+  slippery_n: number;
   /** 가장 가파른 보행로 지점 — 로드뷰는 중심점 대신 여기를 가리킨다.
    * 중심점은 큰길 한복판이라 평지인 경우가 많아 현장 확인에 쓸 수 없다. */
   worst_lat: number | null;
@@ -170,15 +178,23 @@ export interface GuRiskProps {
   slope_max: number | null;
   exceed_ratio: number | null;
   points: number | null;
+  /** 설계기준(4.8°)을 넘는 지점 수 — 화면은 비율 대신 개수로 보여준다.
+   * 세 비율의 분모가 서로 달라(전체 / 폭 기록분 / 재질 기록분) 나란히 놓으면
+   * 잘못 읽히기 때문이다. 개수는 각 줄에 분모를 함께 적어 오해가 없다. */
+  exceed_n: number;
   /** ── 참고 정보 (위험도 점수 미반영) ──
    * 폭·재질은 현장 기록 기반이라 결측이 많다. *_n 은 실제 기록된 지점 수로,
    * 이 값이 작으면 평균을 믿을 수 없어 화면에서 숫자를 감춘다. */
   width_n: number;
   width_mean: number | null;
   narrow_ratio: number | null;
+  /** 폭이 확인된 지점 중 1.5m 이하인 수 */
+  narrow_n: number;
   surface_n: number;
   surface_top: string | null;
   slippery_ratio: number | null;
+  /** 재질이 확인된 지점 중 미끄러운 재질인 수 */
+  slippery_n: number;
   /** 가장 가파른 보행로 지점 — 로드뷰는 중심점 대신 여기를 가리킨다.
    * 중심점은 큰길 한복판이라 평지인 경우가 많아 현장 확인에 쓸 수 없다. */
   worst_lat: number | null;

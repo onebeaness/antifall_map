@@ -176,21 +176,27 @@ def stats(points: list[dict]) -> dict:
     return {
         "risk": risk, "slope_mean": round(mean, 1), "slope_max": round(worst["slope"], 1),  # 상위 5% 지점
         "exceed_ratio": round(exceed, 3), "points": n,
+        # 화면은 비율 대신 **개수**로 보여준다. 세 비율의 분모가 서로 달라
+        # (전체 / 폭 기록분 / 재질 기록분) 나란히 놓으면 잘못 읽히기 때문이다.
+        "exceed_n": sum(1 for s in slopes if s >= BF_MAX),
         "worst_lat": round(worst["lat"], 5), "worst_lon": round(worst["lon"], 5),
         # ── 참고 정보 (점수 미반영). *_n 은 실제로 기록된 지점 수 ──
         "width_n": len(widths),
         "width_mean": round(statistics.fmean(widths), 1) if widths else None,
         "narrow_ratio": None if narrow_ratio is None else round(narrow_ratio, 3),
+        "narrow_n": sum(1 for x in narrows if x),
         "surface_n": len(surfaces),
         "surface_top": top_surface,
         "slippery_ratio": round(len(slippery) / len(surfaces), 3) if surfaces else None,
+        "slippery_n": len(slippery),
     }
 
 
 EMPTY = {"risk": None, "slope_mean": None, "slope_max": None,
-         "exceed_ratio": None, "points": 0, "worst_lat": None, "worst_lon": None,
-         "width_n": 0, "width_mean": None, "narrow_ratio": None,
-         "surface_n": 0, "surface_top": None, "slippery_ratio": None}
+         "exceed_ratio": None, "exceed_n": 0, "points": 0,
+         "worst_lat": None, "worst_lon": None,
+         "width_n": 0, "width_mean": None, "narrow_ratio": None, "narrow_n": 0,
+         "surface_n": 0, "surface_top": None, "slippery_ratio": None, "slippery_n": 0}
 
 
 def round_coords(node):
