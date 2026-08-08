@@ -18,6 +18,13 @@
 낙상 위험과 관계있는 건 딛고 올라가는 기울기이므로 종단경사를 쓴다.
 계산 방법은 scripts/longitudinal_slope.py 참고.
 
+### 다리·터널 보정
+
+DEM은 지표면 모델이라 다리 아래 지면과 터널 위 산을 읽는다. 그 위를 지나는
+길에 없는 경사가 생긴다. data/osm_walkway_tags.json이 있으면 다리·터널 way의
+표고를 양끝 선형보간으로 갈아끼운다 (GraphHopper·Valhalla와 같은 처리).
+서울 생활 보행로 31,695개 중 1,605개(5.1%)가 해당한다.
+
 ## 2. 등산로 제외 (도로유형 path)
 
 원본 지점 185,114개의 구성은 이렇다.
@@ -89,7 +96,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from longitudinal_slope import compute_by_way  # noqa: E402
 
-OUT = Path(__file__).resolve().parent.parent / "frontend/public/geo"
+ROOT = Path(__file__).resolve().parent.parent
+OUT = ROOT / "frontend/public/geo"
+#: OSM 태그 (scripts/fetch_osm_tags.py 산출) — 다리·터널 보정에 쓴다. 없어도 돈다.
+OSM_TAGS = ROOT / "data/osm_walkway_tags.json"
 
 WALKWAY_TYPES = {"footway", "pedestrian"}   # path(등산로) 제외
 BF_MAX = 4.76        # 장애인등편의법 별표1 접근로 기울기 완화 한도 1/12 (도)
@@ -130,8 +140,17 @@ def collect(points_path: str) -> dict[str, list[dict]]:
             })
             kept += 1
 
-    # 원본 경사도(지형 경사) 대신 way를 따라간 종단경사를 채운다
-    compute_by_way(records)
+    # 원본 경사도(지형 경사) 대신 way를 따라간 종단경사를 채운다.
+    # 다리·터널은 DEM이 아래 지면·위 산을 읽으므로 양끝 보간으로 갈아끼운다.
+    tags: dict[str, dict] = {}
+    if OSM_TAGS.exists():
+        tags = json.loads(OSM_TAGS.read_text(encoding="utf-8"))
+    else:
+        print(f"[알림] {OSM_TAGS.name} 없음 — 다리·터널 보정을 건너뜁니다 "
+              "(scripts/fetch_osm_tags.py 참고)")
+    fixed = compute_by_way(records, tags)
+    if fixed:
+        print(f"다리·터널 {fixed:,}개 way의 표고를 양끝 보간으로 대체")
     by_dong: dict[str, list[dict]] = defaultdict(list)
     for r in records:
         if "slope" in r:
