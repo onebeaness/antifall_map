@@ -31,7 +31,7 @@ export default function LandingPage() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#fff" }}>
-      <HeaderBar title="낙지도 — 노인 낙상 위험 예측 서비스" />
+      <HeaderBar title="낙지도 — 어르신 낙상 예방 서비스" />
 
       <div className="split" style={{ flex: 1 }}>
         {/* 좌: 시민 · 개인용 (네이비) */}
@@ -42,8 +42,14 @@ export default function LandingPage() {
           <h1 style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-0.5px", margin: "0 0 14px", lineHeight: 1.35 }}>
             천천히, 편안하게<br />건강 상태를 함께 살펴볼게요.
           </h1>
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: "#cfd6ee", margin: "0 0 26px" }}>
-            정답을 맞히는 검사가 아닙니다.<br />
+          <p style={{ fontSize: 16, lineHeight: 1.7, color: "#cfd6ee", margin: "0 0 26px" }}>
+            낙상은 어르신 안전사고의 가장 큰 원인이지만,
+            미리 알면 상당 부분 막을 수 있습니다.
+            건강 상태와 다니시는 길의 경사를 함께 살펴보고,
+            무엇을 조심하면 좋을지 알려드립니다.
+          </p>
+          <p style={{ fontSize: 15, lineHeight: 1.7, color: "#9fb0e6", margin: "0 0 26px" }}>
+            정답을 맞히는 검사가 아닙니다.
             평소 생활과 가장 가까운 답을 골라주시면 됩니다.
           </p>
           <Bullet color="var(--good)" text="간편 확인" sub="6문항 · 약 2분" />
@@ -64,8 +70,9 @@ export default function LandingPage() {
           <h2 style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-0.5px", margin: "0 0 14px", lineHeight: 1.35 }}>
             지역 안전 현황
           </h2>
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: "var(--ink-muted)", margin: "0 0 26px" }}>
-            근거에 기반한 지역별 위험 현황과 정책 지원 화면입니다.<br />
+          <p style={{ fontSize: 16, lineHeight: 1.7, color: "var(--ink-muted)", margin: "0 0 26px" }}>
+            보행로 137,805개 지점의 경사를 실측해 위험 구간을 찾고,
+            유동인구를 겹쳐 어디부터 정비하면 효과가 큰지 제시합니다.
             자치구에서 행정동까지 좁혀 가며 살펴볼 수 있습니다.
           </p>
           <Bullet color="var(--medical-blue)" text="보행 경사위험도" sub="자치구 25개 · 행정동 421개" />

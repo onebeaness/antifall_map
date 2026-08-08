@@ -24,6 +24,11 @@ html,
 body {
   margin: 0;
   padding: 0;
+  /* 한국어는 어절(띄어쓰기) 단위로 끊어야 자연스럽다.
+     기본값(normal)은 글자 단위로 잘라 "보행환" / "경"처럼 어색해진다.
+     긴 URL·영문은 overflow-wrap으로 따로 처리한다. */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 body {

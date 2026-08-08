@@ -9,7 +9,7 @@ import { Button, Card, Gauge, HeaderBar, NoticeStrip, OptionButton, SignalBadge 
 import { assessSimple } from "@/lib/api";
 import { SIMPLE_QUESTIONS } from "@/lib/questions";
 import {
-  headline, levelColor, levelOf, simpleFactors, simpleHeuristic, simpleMessage, summaryLead,
+  ageFromBirth, headline, levelColor, levelOf, simpleFactors, simpleHeuristic, simpleMessage, summaryLead,
 } from "@/lib/scoring";
 import { storage } from "@/lib/storage";
 import type { Answers, AssessResult, Profile } from "@/lib/types";
@@ -32,12 +32,15 @@ export default function SimpleTestPage() {
       const p = await storage.getProfile();
       if (!p) { router.replace("/register"); return; }
       setProfile(p);
-      // 진행 중 응답 복원 (없으면 성별만 프로필에서 프리필)
+      // 프로필에 이미 있는 값은 다시 묻지 않고 채워 둔다 (성별·만 나이)
+      const prefill: Answers = { sex: p.gender };
+      const age = ageFromBirth(p.birth);
+      if (age != null) prefill.age = age;
       try {
         const draft = JSON.parse(window.localStorage.getItem(DRAFT_KEY) ?? "null");
-        if (draft?.ans) { setAns(draft.ans); setStep(Math.min(draft.step ?? 1, TOTAL)); }
-        else setAns({ sex: p.gender });
-      } catch { setAns({ sex: p.gender }); }
+        if (draft?.ans) { setAns({ ...prefill, ...draft.ans }); setStep(Math.min(draft.step ?? 1, TOTAL)); }
+        else setAns(prefill);
+      } catch { setAns(prefill); }
       setLoaded(true);
     })();
   }, [router]);
@@ -71,7 +74,9 @@ export default function SimpleTestPage() {
   };
 
   const retry = () => {
-    setAns({ sex: profile?.gender ?? "" });
+    setAns({ sex: profile?.gender ?? "",
+             ...(ageFromBirth(profile?.birth) != null
+                 ? { age: ageFromBirth(profile?.birth) as number } : {}) });
     setResult(null);
     setStep(1);
     window.localStorage.removeItem(DRAFT_KEY);
@@ -166,7 +171,7 @@ export default function SimpleTestPage() {
           <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: ".4px", color: "var(--medical-blue)" }}>
             {q.simpleSection} · 문항 {step}
           </div>
-          <div style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.4, letterSpacing: "-0.5px", margin: "10px 0 6px", whiteSpace: "pre-line" }}>
+          <div style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.4, letterSpacing: "-0.5px", margin: "10px 0 6px", wordBreak: "keep-all" }}>
             {q.title}
           </div>
           {q.help && <div style={{ fontSize: 14.5, color: "var(--ink-muted)", marginTop: 10 }}>{q.help}</div>}
