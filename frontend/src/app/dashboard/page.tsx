@@ -5,27 +5,25 @@
  * 구성 (위 → 아래):
  *  1. KPI — 서울 421개 행정동 보행 경사위험도 요약 (실데이터)
  *  2. 위험도 지도(choropleth) + 위험 상위 표
- *  3. 선택 행정동 상세 — 위험 프로필 + 보안등 + 인구·생활인구 (연계 조회)
+ *  3. 선택 행정동 상세 — 경사 프로필 + 보도 폭·재질 + 인구·생활인구
  *  4. 투입 효과 기대 지역 — 위험도 × 유동인구 랭킹
  *
  * 전 구간 실데이터: 경사위험도는 자체 보행로 분석(public/geo/seoul_dong_risk.geojson),
- * 인구는 SGIS, 생활인구는 서울 열린데이터, 보안등은 공공데이터포털.
+ * 인구는 SGIS, 생활인구는 서울 열린데이터.
  */
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, KpiCard, NoticeStrip, SignalBadge } from "@/components/ui";
 import { PopulationPanel, type SelectedDong } from "@/components/PopulationPanel";
-import { getCitywideFloating, getLightsNear } from "@/lib/api";
+import { getCitywideFloating } from "@/lib/api";
 import {
   RISK_DANGER, RISK_WARN, SLOPE_MAX_DEG, SLOPE_RECOMMENDED_DEG,
   coverageText, hasEnough, ratioText, riskColor, riskLevel, slopeNote,
   slopePercent, slopeText,
 } from "@/lib/dongRisk";
 import { kakaoRoadviewUrl } from "@/lib/kakao";
-import type {
-  CitywideFloating, DongRiskProps, GuRiskProps, Level, LightsResult,
-} from "@/lib/types";
+import type { CitywideFloating, DongRiskProps, GuRiskProps, Level } from "@/lib/types";
 
 const ChoroplethMap = dynamic(() => import("@/components/ChoroplethMap"), { ssr: false });
 
@@ -45,16 +43,12 @@ export default function DashboardPage() {
   const [filter, setFilter] = useState<"전체" | "위험" | "주의" | "양호">("전체");
   const [selectedDong, setSelectedDong] = useState<DongRiskProps | null>(null);
   const [panelSel, setPanelSel] = useState<SelectedDong | null>(null);
-  const [lights, setLights] = useState<LightsResult | null>(null);
-  const [lightsMsg, setLightsMsg] = useState<string | null>(null);
   const [geoError, setGeoError] = useState(false);
   const [mounted, setMounted] = useState(false);
   // 유동인구(서울 전역 일평균) — '투입 효과 기대 지역' 랭킹의 노출 지표
   const [flow, setFlow] = useState<CitywideFloating | null>(null);
   const [flowState, setFlowState] = useState<"loading" | "ready" | "error">("loading");
   const [flowMsg, setFlowMsg] = useState<string | null>(null);
-  // 연속 동 선택 시 늦은 보안등 응답이 현재 선택에 표시되지 않도록 순번 관리
-  const lightsSeqRef = useRef(0);
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
@@ -134,27 +128,21 @@ export default function DashboardPage() {
     setActiveGu(gu);
     setSelectedDong(null);
     setPanelSel(null);
-    setLights(null);
-    setLightsMsg(null);
-    lightsSeqRef.current++; // 늦게 도착할 이전 보안등 응답을 버린다
   };
 
-  const onSelectDong = async (p: DongRiskProps) => {
+  const onSelectDong = (p: DongRiskProps) => {
     setSelectedDong(p);
     // SGIS는 통계청 코드(자료 없으면 백엔드가 상위 행정구역으로 폴백),
     // 생활인구는 행자부 10자리의 앞 8자리
     setPanelSel({ name: p.name, sgisCd: p.adm_cd, floatCd: p.adm_cd2.slice(0, 8) });
-    setLights(null);
-    setLightsMsg(null);
-    const seq = ++lightsSeqRef.current;
-    try {
-      const gu = p.sgg ? `서울특별시 ${p.sgg}` : undefined;
-      const result = await getLightsNear(p.lat, p.lon, 500, gu);
-      if (seq === lightsSeqRef.current) setLights(result);
-    } catch (e) {
-      if (seq === lightsSeqRef.current) setLightsMsg(e instanceof Error ? e.message : String(e));
-    }
   };
+
+  /* 보안등(야간 조명)은 화면에서 내렸다.
+   * 전국보안등정보표준데이터는 지자체가 각자 올리는 구조라 서울 커버리지가
+   * 고르지 않다. 관악구 대학동처럼 0개로 나오면 "어두운 동네"가 아니라
+   * "자료가 없는 동네"인데, 화면에서는 구분이 안 된다. 폭·재질과 같은 이유다.
+   * 백엔드 /api/safety/lights 와 api.ts getLightsNear 는 그대로 두었으니,
+   * 커버리지를 확인한 뒤 이 파일에서만 다시 붙이면 된다. */
 
   return (
     <main className="container">
@@ -186,7 +174,7 @@ export default function DashboardPage() {
           </div>
           <div style={{ fontSize: 13.5, color: "var(--ink-muted)", marginTop: 3 }}>
             생활 보행로 137,805개 지점의 경사 분석(자치구 25개 · 행정동 {dongs.length || 421}개)
-            — 자치구 → 행정동 순으로 좁혀 가며 인구·조명까지 연계 분석합니다
+            — 자치구 → 행정동 순으로 좁혀 가며 인구·유동인구까지 연계 분석합니다
           </div>
         </div>
         <select value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)}
@@ -328,7 +316,7 @@ export default function DashboardPage() {
             </>
           ) : (
             <span style={{ fontSize: 13.5, color: "var(--ink-muted)" }}>
-              지도에서 동을 클릭하면 위험 프로필과 인구·조명 분석이 여기 나타납니다
+              지도에서 동을 클릭하면 경사 프로필과 인구 분석이 여기 나타납니다
             </span>
           )}
         </div>
@@ -397,18 +385,6 @@ export default function DashboardPage() {
               </div>
               <div style={{ fontSize: 12, color: "var(--ink-muted)", marginTop: 10 }}>
                 생활 보행로 {selectedDong.points?.toLocaleString() ?? "—"}개 지점 · DEM 전 지점 계산 · 등산로 제외
-              </div>
-              <div style={{ fontSize: 13, color: "var(--ink-muted)", marginTop: 12 }}>
-                {lights ? (
-                  <>야간 조명: 반경 {lights.radius_m}m 내 보안등{" "}
-                    <b style={{ color: "var(--ink)" }}>{lights.count}개</b>
-                    {lights.truncated && " (일부 스캔 — 참고치)"}</>
-                ) : lightsMsg ? (
-                  <span style={{ display: "block", color: "#9aa3b2", lineHeight: 1.6,
-                                wordBreak: "break-word" }}>야간 조명: {lightsMsg}</span>
-                ) : (
-                  <>보안등 밀도 조회 중...</>
-                )}
               </div>
             </div>
 
