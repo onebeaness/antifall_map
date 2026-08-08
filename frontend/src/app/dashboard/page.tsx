@@ -12,7 +12,7 @@
  * 인구는 SGIS, 생활인구는 서울 열린데이터.
  */
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, KpiCard, NoticeStrip, SignalBadge } from "@/components/ui";
 import { PopulationPanel, type SelectedDong } from "@/components/PopulationPanel";
@@ -28,6 +28,12 @@ import type { CitywideFloating, DongRiskProps, GuRiskProps, Level } from "@/lib/
 const ChoroplethMap = dynamic(() => import("@/components/ChoroplethMap"), { ssr: false });
 
 const GRADE_LABEL: Record<Level, string> = { danger: "위험", warn: "주의", good: "양호" };
+
+/** 산출 근거 블록의 라벨/값 — dt/dt 기본 여백을 지우고 라벨만 강조한다 */
+const NOTE_LABEL: React.CSSProperties = {
+  fontWeight: 800, color: "var(--ink)", whiteSpace: "nowrap",
+};
+const NOTE_VALUE: React.CSSProperties = { margin: 0 };
 
 
 function weekAgoYYYYMMDD(): string {
@@ -230,28 +236,51 @@ export default function DashboardPage() {
                 : "· 진할수록 가파름 · 자료 없음 = 회색 · 자치구를 클릭하면 행정동으로 들어갑니다"}
             </span>
           </div>
-          {/* 산식 공개 — 등급 경계가 어디서 왔는지 화면에서 바로 확인되게 한다 */}
-          <div style={{
-            fontSize: 12, lineHeight: 1.65, color: "var(--ink-muted)",
-            background: "var(--bg-slate)", borderRadius: 10, padding: "10px 12px", marginTop: 10,
+          {/* 산출 근거 — 줄글로 쓰면 아무도 안 읽는다. 라벨 + 짧은 항목으로 쪼갠다. */}
+          <dl style={{
+            display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 12px",
+            fontSize: 12, lineHeight: 1.6, color: "var(--ink-muted)",
+            background: "var(--bg-slate)", borderRadius: 10,
+            padding: "12px 14px", margin: "10px 0 0",
           }}>
-            <b style={{ color: "var(--ink)" }}>산식</b> 경사점수 = 100 × (0.5 × 상시부담 + 0.5 × 기준초과).
-            상시부담 = min(1, 평균 경사 ÷ {SLOPE_MAX_DEG}°), 기준초과 = {SLOPE_MAX_DEG}° 이상 지점 비율.<br />
-            여기에 <b style={{ color: "var(--ink)" }}>협소 구간(보도 폭 1.5m 이하)</b> 비율 × 40을 더합니다.
-            가중 평균이 아니라 가산인 이유: 폭 기록이 26.7%뿐이라 평균에 넣으면
-            자료가 없는 동의 점수가 함께 내려갑니다.<br />
-            등급 경계는 <b style={{ color: "var(--ink)" }}>장애인등편의법 시행규칙 별표1</b>의
-            접근로 기울기와 맞췄습니다 —
-            {" "}{RISK_WARN}점 = 권장 1/18({SLOPE_RECOMMENDED_DEG}°),
-            {" "}{RISK_DANGER}점 = 완화 한도 1/12({SLOPE_MAX_DEG}°).<br />
-            보도·보행자전용도로 137,805개 지점을 DEM으로 전수 계산했습니다.
-            등산로(북한산둘레길·사당능선 등 47,309개)는 생활 낙상과 무관해 제외했고,
-            보행로 표본이 10개 미만인 동은 값을 내지 않습니다(회색).<br />
-            <b style={{ color: "var(--ink)" }}>노면 재질은 점수에 넣지 않습니다</b> —
-            재질위험점수가 미끄럼을 실제로 잰 값이 아니라 재질별 고정 매핑이기
-            때문입니다(아스콘 1 / 블록 2 / 콘크리트 3 / 비포장 4). 폭 기록이
-            10개 미만인 동은 협소 가산도 하지 않고, 기록 지점 수를 함께 적습니다.
-          </div>
+            <dt style={NOTE_LABEL}>산식</dt>
+            <dd style={NOTE_VALUE}>
+              경사점수 = 100 × (0.5 × 상시부담 + 0.5 × 기준초과)<br />
+              <span style={{ opacity: 0.85 }}>
+                · 상시부담 = min(1, 평균 경사 ÷ {SLOPE_MAX_DEG}°)<br />
+                · 기준초과 = {SLOPE_MAX_DEG}° 넘는 지점 비율
+              </span><br />
+              <b style={{ color: "var(--ink)" }}>+ 협소 가산</b> = 폭 1.5m 이하 지점 비율 × 40
+            </dd>
+
+            <dt style={NOTE_LABEL}>등급</dt>
+            <dd style={NOTE_VALUE}>
+              양호 {RISK_WARN}점 미만 · 주의 {RISK_WARN}~{RISK_DANGER - 1} · 위험 {RISK_DANGER} 이상<br />
+              <span style={{ opacity: 0.85 }}>
+                장애인등편의법 시행규칙 별표1 접근로 기울기 기준<br />
+                · {RISK_WARN}점 = 권장 1/18 ({SLOPE_RECOMMENDED_DEG}°)
+                · {RISK_DANGER}점 = 완화 한도 1/12 ({SLOPE_MAX_DEG}°)
+              </span>
+            </dd>
+
+            <dt style={NOTE_LABEL}>자료</dt>
+            <dd style={NOTE_VALUE}>
+              보도·보행자전용도로 137,805개 지점 DEM 전수 계산<br />
+              <span style={{ opacity: 0.85 }}>
+                · 등산로 47,309개 제외 (북한산둘레길·사당능선 등)
+              </span>
+            </dd>
+
+            <dt style={NOTE_LABEL}>유의</dt>
+            <dd style={NOTE_VALUE}>
+              · 협소를 평균이 아니라 <b style={{ color: "var(--ink)" }}>가산</b>으로 넣습니다 —
+              폭 기록이 26.7%뿐이라 평균에 넣으면 자료 없는 동까지 점수가 내려갑니다<br />
+              · 폭 기록 10개 미만 → 협소 가산 없음<br />
+              · 보행로 10개 미만 → 값 없음 (지도에서 회색)<br />
+              · 노면 재질은 점수 제외 — 재질별 고정 매핑(아스콘 1 · 블록 2 ·
+              콘크리트 3 · 비포장 4)이라 미끄럼 실측값이 아닙니다
+            </dd>
+          </dl>
         </Card>
 
         <Card style={{ padding: 18 }}>
