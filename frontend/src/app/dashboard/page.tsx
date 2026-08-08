@@ -235,8 +235,11 @@ export default function DashboardPage() {
             fontSize: 12, lineHeight: 1.65, color: "var(--ink-muted)",
             background: "var(--bg-slate)", borderRadius: 10, padding: "10px 12px", marginTop: 10,
           }}>
-            <b style={{ color: "var(--ink)" }}>산식</b> 경사위험도 = 100 × (0.5 × 상시부담 + 0.5 × 기준초과).
+            <b style={{ color: "var(--ink)" }}>산식</b> 경사점수 = 100 × (0.5 × 상시부담 + 0.5 × 기준초과).
             상시부담 = min(1, 평균 경사 ÷ {SLOPE_MAX_DEG}°), 기준초과 = {SLOPE_MAX_DEG}° 이상 지점 비율.<br />
+            여기에 <b style={{ color: "var(--ink)" }}>협소 구간(보도 폭 1.5m 이하)</b> 비율 × 40을 더합니다.
+            가중 평균이 아니라 가산인 이유: 폭 기록이 26.7%뿐이라 평균에 넣으면
+            자료가 없는 동의 점수가 함께 내려갑니다.<br />
             등급 경계는 <b style={{ color: "var(--ink)" }}>장애인등편의법 시행규칙 별표1</b>의
             접근로 기울기와 맞췄습니다 —
             {" "}{RISK_WARN}점 = 권장 1/18({SLOPE_RECOMMENDED_DEG}°),
@@ -244,9 +247,10 @@ export default function DashboardPage() {
             보도·보행자전용도로 137,805개 지점을 DEM으로 전수 계산했습니다.
             등산로(북한산둘레길·사당능선 등 47,309개)는 생활 낙상과 무관해 제외했고,
             보행로 표본이 10개 미만인 동은 값을 내지 않습니다(회색).<br />
-            <b style={{ color: "var(--ink)" }}>보도 폭·노면 재질은 점수에 넣지 않습니다</b> —
-            현장 기록 기반이라 결측이 많아(폭 26.7%, 재질 32.6%) 표본이 적은 곳에서
-            값이 크게 흔들립니다. 참고로만 표시하고 기록 지점 수를 함께 적습니다.
+            <b style={{ color: "var(--ink)" }}>노면 재질은 점수에 넣지 않습니다</b> —
+            재질위험점수가 미끄럼을 실제로 잰 값이 아니라 재질별 고정 매핑이기
+            때문입니다(아스콘 1 / 블록 2 / 콘크리트 3 / 비포장 4). 폭 기록이
+            10개 미만인 동은 협소 가산도 하지 않고, 기록 지점 수를 함께 적습니다.
           </div>
         </Card>
 
@@ -360,7 +364,10 @@ export default function DashboardPage() {
                 {hasEnough(selectedDong.width_n) ? (
                   <span><b style={{ fontSize: 15 }}>{selectedDong.width_mean}m</b>
                     <span style={{ color: "var(--ink-muted)", marginLeft: 8, fontSize: 12.5 }}>
-                      좁은 구간 {ratioText(selectedDong.narrow_ratio)} ·{" "}
+                      협소(1.5m 이하) {ratioText(selectedDong.narrow_ratio)}
+                      {selectedDong.narrow_ratio
+                        ? ` → 위험도 +${Math.round(selectedDong.narrow_ratio * 40)}점`
+                        : ""} ·{" "}
                       {coverageText(selectedDong.width_n, selectedDong.points)}
                     </span>
                   </span>

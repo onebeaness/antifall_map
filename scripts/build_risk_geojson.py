@@ -21,16 +21,30 @@ path는 전부 등산로다. 전체의 25.6%를 차지하면서 경사 평균을
 로드뷰로 보면 평평하다. 등산로 경사는 고령자의 생활 낙상 위험과 무관하므로
 footway·pedestrian만 남긴다.
 
-## 2. 폭·재질은 점수에 넣지 않고 참고 정보로만 싣는다
+## 2. 협소 구간은 감점이 아니라 가산으로 넣는다
 
-폭·재질은 현장에서 기록해야 하는 값이라 결측이 많다(생활 보행로 기준
-폭 26.7%, 재질 32.6%). 표본이 몇 개뿐인 동에서는 지수가 0과 100 사이를
-튀어서 점수에 넣으면 순위를 망친다. 그렇다고 감추면 "보도블록·폭 정보가
-없다"는 지적을 받는다. 그래서 **점수에서는 빼되 값은 싣고, 기록 지점 수를
-항상 함께 내려보낸다.** 화면에서 표본이 부족하면 숫자 대신 그 사실을 알린다.
+원본 산식은 경사 0.64 + 협소 0.26 + 재질 0.10의 가중 평균이었다.
+그대로 되돌리면 위험도가 **내려간다**. 폭이 기록된 지점이 26.7%뿐이라
+협소 비율의 중앙값이 0.0%이고, 그 0이 가중 평균에서 점수를 26% 희석하기
+때문이다. 실제로 계산해 보면 306개 동 중 62개의 등급이 내려가는데 전부
+협소가 0인 곳이다 — 성동구 사근동은 폭을 260개나 기록했는데도
+69점(위험)에서 49점(주의)으로 떨어진다. "넓어서 안전"이 아니라
+"협소 0이 경사 위험을 가린" 결과다.
 
-재질위험점수는 재질별 고정 매핑이다 (아스콘 1 / 블록·아스콘블록 2 /
-콘크리트 3 / 비포장 4). 측정값이 아니라 분류값이라는 점을 화면에도 밝힌다.
+그래서 가중 평균 대신 **가산**으로 넣는다.
+
+    경사위험도 = min(100, 경사점수 + 협소비율 × 40)
+
+협소가 확인된 곳은 위험도가 올라가고, 폭 자료가 없는 곳은 경사 점수
+그대로 남는다. 계수 40은 원본 AHP의 경사:협소 비율을 유지한 값이다
+(100 × 0.26/0.64 ≈ 41). 폭 기록이 MIN_RECORDED 미만이면 가산하지 않는다.
+
+협소 판정은 원본 플래그를 그대로 쓴다 — 역산해 보면 **폭 1.5m 이하**에서
+예외 없이 1이고 1.6m부터 0이다.
+
+재질은 점수에 넣지 않는다. 재질위험점수가 측정값이 아니라 재질별 고정
+매핑이라(아스콘 1 / 블록·아스콘블록 2 / 콘크리트 3 / 비포장 4) 미끄럼을
+실제로 잰 값이 아니기 때문이다. 참고 정보로만 싣는다.
 
 ## 3. 기준 초과 비율 (구 '급경사 비율')
 
@@ -43,7 +57,8 @@ footway·pedestrian만 남긴다.
 
     상시부담   = min(1, 평균 경사 / 4.76)
     기준초과   = 4.76° 이상 지점의 비율
-    경사위험도 = 100 × (0.5 × 상시부담 + 0.5 × 기준초과)
+    경사점수   = 100 × (0.5 × 상시부담 + 0.5 × 기준초과)
+    보행위험도 = min(100, 경사점수 + 협소비율 × 40)
 
 등급 경계는 법정 기준에서 역산했다. 기준 초과가 0일 때
     양호 <33  = 평균 경사가 권장 1/18(3.18°) 미만
@@ -65,6 +80,8 @@ OUT = Path(__file__).resolve().parent.parent / "frontend/public/geo"
 WALKWAY_TYPES = {"footway", "pedestrian"}   # path(등산로) 제외
 BF_MAX = 4.76        # 장애인등편의법 별표1 접근로 기울기 완화 한도 1/12 (도)
 MIN_POINTS = 10      # 이보다 적으면 표본 부족으로 판단해 값을 내지 않는다 (하위 10%)
+MIN_WIDTH_POINTS = 10   # 폭 기록이 이보다 적으면 협소 가산을 하지 않는다
+NARROW_WEIGHT = 40      # 협소 가산 계수 — 원본 AHP의 경사:협소 비율 유지
 COORD_DIGITS = 5     # 약 1m — 행정구역 경계에는 충분하고 용량을 크게 줄인다
 
 
@@ -112,13 +129,20 @@ def stats(points: list[dict]) -> dict:
     slopes = [q["slope"] for q in points]
     mean = statistics.fmean(slopes)
     exceed = sum(1 for s in slopes if s >= BF_MAX) / n
-    risk = (None if n < MIN_POINTS
-            else round(100 * (0.5 * min(1.0, mean / BF_MAX) + 0.5 * exceed)))
     worst = max(points, key=lambda q: q["slope"])  # 로드뷰로 바로 확인할 자리
 
     widths = [float(q["width"]) for q in points
               if q["width"] is not None and float(q["width"]) > 0]
     narrows = [q["narrow"] for q in points if q["narrow"] is not None]
+    narrow_ratio = (sum(1 for x in narrows if x) / len(narrows)
+                    if len(narrows) >= MIN_WIDTH_POINTS else None)
+
+    if n < MIN_POINTS:
+        risk = None
+    else:
+        slope_score = 100 * (0.5 * min(1.0, mean / BF_MAX) + 0.5 * exceed)
+        # 협소는 가산만 — 폭 자료가 없다고 점수가 내려가면 안 된다
+        risk = round(min(100.0, slope_score + (narrow_ratio or 0) * NARROW_WEIGHT))
     surfaces = [q["surface"] for q in points if q["surface"]]
     top_surface = Counter(surfaces).most_common(1)[0][0] if surfaces else None
     slippery = [s for s in surfaces if SURFACE_RISK.get(s, 0) >= SLIPPERY_FROM]
@@ -130,8 +154,7 @@ def stats(points: list[dict]) -> dict:
         # ── 참고 정보 (점수 미반영). *_n 은 실제로 기록된 지점 수 ──
         "width_n": len(widths),
         "width_mean": round(statistics.fmean(widths), 1) if widths else None,
-        "narrow_ratio": (round(sum(1 for x in narrows if x) / len(narrows), 3)
-                         if narrows else None),
+        "narrow_ratio": None if narrow_ratio is None else round(narrow_ratio, 3),
         "surface_n": len(surfaces),
         "surface_top": top_surface,
         "slippery_ratio": round(len(slippery) / len(surfaces), 3) if surfaces else None,
