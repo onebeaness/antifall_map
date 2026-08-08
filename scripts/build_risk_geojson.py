@@ -7,7 +7,18 @@
 원본 폴리곤에 들어 있는 집계값을 그대로 쓰지 않고, 보행로 지점 원본에서
 직접 집계한다. 아래 두 가지를 바로잡아야 하기 때문이다.
 
-## 1. 등산로 제외 (도로유형 path)
+## 1. 경사는 원본 값을 쓰지 않고 종단경사를 다시 계산한다
+
+원본의 `경사도`는 그 자리 **지형의 경사**(DEM terrain slope)다. 길을 따라
+올라가는 종단경사가 아니다. 산비탈을 사선으로 가로지르는 길은 지형이
+16°여도 길 자체는 2°다. 관악구 난향동 way 1436650821이 그런 경우로,
+2,796m를 141m→39m로 오르내려 종단경사가 2.1°인데 원본은 최대 16.2°를
+붙여 놨다. 로드뷰로 열어 보면 완만한 도로에 오른쪽만 급한 절개지다.
+
+낙상 위험과 관계있는 건 딛고 올라가는 기울기이므로 종단경사를 쓴다.
+계산 방법은 scripts/longitudinal_slope.py 참고.
+
+## 2. 등산로 제외 (도로유형 path)
 
 원본 지점 185,114개의 구성은 이렇다.
 
@@ -21,7 +32,7 @@ path는 전부 등산로다. 전체의 25.6%를 차지하면서 경사 평균을
 로드뷰로 보면 평평하다. 등산로 경사는 고령자의 생활 낙상 위험과 무관하므로
 footway·pedestrian만 남긴다.
 
-## 2. 협소 구간은 감점이 아니라 가산으로 넣는다
+## 3. 협소 구간은 감점이 아니라 가산으로 넣는다
 
 원본 산식은 경사 0.64 + 협소 0.26 + 재질 0.10의 가중 평균이었다.
 그대로 되돌리면 위험도가 **내려간다**. 폭이 기록된 지점이 26.7%뿐이라
@@ -46,7 +57,7 @@ footway·pedestrian만 남긴다.
 매핑이라(아스콘 1 / 블록·아스콘블록 2 / 콘크리트 3 / 비포장 4) 미끄럼을
 실제로 잰 값이 아니기 때문이다. 참고 정보로만 싣는다.
 
-## 3. 기준 초과 비율 (구 '급경사 비율')
+## 4. 기준 초과 비율 (구 '급경사 비율')
 
 원본의 급경사 판정은 10° 이상인데, 이는 등산로 기준이다. 보도에서 10°는
 거의 나오지 않아(생활 보행로 기준 2.9%) 지표가 무뎌진다. 장애인등편의법
@@ -75,6 +86,9 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from longitudinal_slope import compute_by_way  # noqa: E402
+
 OUT = Path(__file__).resolve().parent.parent / "frontend/public/geo"
 
 WALKWAY_TYPES = {"footway", "pedestrian"}   # path(등산로) 제외
@@ -92,7 +106,7 @@ def collect(points_path: str) -> dict[str, list[dict]]:
     지점**으로 걸기 위해서다. 중심점은 큰길 한복판이라 평지인 경우가 많아,
     가파르다고 표시된 동을 로드뷰로 열면 평평해 보이는 문제가 있었다.
     """
-    by_dong: dict[str, list[dict]] = defaultdict(list)
+    records: list[dict] = []
     kept = skipped = 0
     with open(points_path, encoding="utf-8") as fh:
         for line in fh:
@@ -103,18 +117,28 @@ def collect(points_path: str) -> dict[str, list[dict]]:
             if p.get("도로유형") not in WALKWAY_TYPES:
                 skipped += 1
                 continue
-            slope, code = p.get("경사도"), p.get("adm_cd")
-            if slope is None or not code:
+            code, elev = p.get("adm_cd"), p.get("표고")
+            if elev is None or not code:
                 continue
             lon, lat = json.loads(line)["geometry"]["coordinates"][:2]
-            by_dong[code].append({
-                "slope": float(slope), "lat": lat, "lon": lon,
+            records.append({
+                "osm_id": p.get("osm_id"), "coord": (lon, lat), "elev": float(elev),
+                "adm_cd": code, "lat": lat, "lon": lon,
                 "width": p.get("보행로폭"),          # 결측 많음 — 점수에 안 씀
                 "narrow": p.get("협소여부"),
                 "surface": p.get("노면재질"),
             })
             kept += 1
-    print(f"보행로 지점 {kept:,}개 집계 (등산로 등 {skipped:,}개 제외)")
+
+    # 원본 경사도(지형 경사) 대신 way를 따라간 종단경사를 채운다
+    compute_by_way(records)
+    by_dong: dict[str, list[dict]] = defaultdict(list)
+    for r in records:
+        if "slope" in r:
+            by_dong[r["adm_cd"]].append(r)
+    scored = sum(len(v) for v in by_dong.values())
+    print(f"보행로 지점 {kept:,}개 (등산로 등 {skipped:,}개 제외) "
+          f"→ 종단경사 산출 {scored:,}개 ({scored / kept * 100:.1f}%)")
     return by_dong
 
 
@@ -129,7 +153,9 @@ def stats(points: list[dict]) -> dict:
     slopes = [q["slope"] for q in points]
     mean = statistics.fmean(slopes)
     exceed = sum(1 for s in slopes if s >= BF_MAX) / n
-    worst = max(points, key=lambda q: q["slope"])  # 로드뷰로 바로 확인할 자리
+    # 로드뷰로 확인할 자리 — 최대값은 이상치 하나에 끌려가므로 상위 5% 지점을 쓴다
+    ranked = sorted(points, key=lambda q: q["slope"])
+    worst = ranked[max(0, int(len(ranked) * 0.95) - 1)]
 
     widths = [float(q["width"]) for q in points
               if q["width"] is not None and float(q["width"]) > 0]
@@ -148,7 +174,7 @@ def stats(points: list[dict]) -> dict:
     slippery = [s for s in surfaces if SURFACE_RISK.get(s, 0) >= SLIPPERY_FROM]
 
     return {
-        "risk": risk, "slope_mean": round(mean, 1), "slope_max": round(worst["slope"], 1),
+        "risk": risk, "slope_mean": round(mean, 1), "slope_max": round(worst["slope"], 1),  # 상위 5% 지점
         "exceed_ratio": round(exceed, 3), "points": n,
         "worst_lat": round(worst["lat"], 5), "worst_lon": round(worst["lon"], 5),
         # ── 참고 정보 (점수 미반영). *_n 은 실제로 기록된 지점 수 ──
