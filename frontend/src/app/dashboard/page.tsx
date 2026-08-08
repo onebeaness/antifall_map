@@ -36,6 +36,10 @@ const NOTE_LABEL: React.CSSProperties = {
 const NOTE_VALUE: React.CSSProperties = { margin: 0 };
 
 
+/** YYYYMMDD → 2026-06-23 */
+const fmtDate = (d: string) =>
+  d?.length === 8 ? `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6)}` : d;
+
 function weekAgoYYYYMMDD(): string {
   return new Date(Date.now() - 7 * 86400_000).toISOString().slice(0, 10).replace(/-/g, "");
 }
@@ -439,7 +443,7 @@ export default function DashboardPage() {
           <span style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>
             위험도 × 일평균 유동인구 — 경사가 가파르면서 지나다니는 사람이 많은 동일수록
             정비 투입 대비 낙상 감소 효과가 큽니다
-            {flow && ` · 생활인구 기준일 ${flow.date}`}
+            {flow && ` · 생활인구 ${fmtDate(flow.date)} 기준`}
           </span>
         </div>
 

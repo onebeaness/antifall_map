@@ -98,7 +98,9 @@ export interface DongPopulation {
 /** GET /api/population/floating 응답 (서울 생활인구, 시간대별) */
 export interface FloatingPopulation {
   adm_cd: string;
+  /** 실제로 자료를 가져온 날짜 — 공개 지연 때문에 요청 날짜와 다를 수 있다 */
   date: string;
+  requested_date?: string;
   hours: number[];
   values: number[];
 }
@@ -187,7 +189,9 @@ export interface GuRiskProps {
 
 /** GET /api/population/floating/citywide 응답 — 서울 전역 일평균 생활인구 */
 export interface CitywideFloating {
+  /** 실제로 자료를 가져온 날짜 (요청 날짜에 자료가 없으면 과거로 대체된다) */
   date: string;
+  requested_date?: string;
   hours_used: number;
   dongs: Record<string, { avg: number; peak: number; peak_hour: number }>;
 }

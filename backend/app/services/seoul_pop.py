@@ -5,7 +5,10 @@
   필드: STDR_DE_ID(기준일), TMZON_PD_SE(시간대 00~23), ADSTRD_CODE_SE(행정동코드),
         TOT_LVPOP_CO(총생활인구수)
 키 발급: https://data.seoul.go.kr (인증키 신청) — 서울시 데이터만 제공된다.
-생활인구는 보통 5일 전후 지연 공개되므로 date는 1주 전 날짜를 권장.
+
+⚠️ 공개 지연 기간이 문서화되어 있지 않고 그때그때 달라진다. 날짜를 고정하면
+조회 결과가 0건(INFO-200)이 되어 화면이 통째로 빈다. 그래서 요청 날짜부터
+과거로 훑어 실제로 자료가 있는 가장 최근 날짜를 찾아 쓴다(latest_available_date).
 """
 
 from __future__ import annotations
@@ -23,6 +26,43 @@ TIMEOUT = 10
 
 class SeoulPopError(RuntimeError):
     pass
+
+
+# ── 가용 날짜 탐색 ──────────────────────────────────────────────────
+#: 요청 날짜에서 거슬러 올라가며 짚어 볼 일수. 촘촘히 다 훑으면 요청이 너무
+#: 많아지므로 성기게 잡고, 한 번 찾은 지연 일수는 캐시해 다음부터 건너뛴다.
+_PROBE_DAYS = (0, 3, 7, 14, 21, 30, 45, 60, 90, 120, 180)
+_resolved_lag: int | None = None   # 마지막으로 확인된 지연 일수
+
+
+def _shift(date: str, days: int) -> str:
+    from datetime import datetime, timedelta
+    return (datetime.strptime(date, "%Y%m%d") - timedelta(days=days)).strftime("%Y%m%d")
+
+
+def _has_data(api_key: str, date: str) -> bool:
+    """그 날짜에 자료가 있는지 한 번만 찔러 본다 (12시, 아무 동이나 1건)."""
+    url = f"{BASE}/{api_key}/json/{SERVICE}/1/1/{date}/12"
+    try:
+        resp = requests.get(url, timeout=TIMEOUT)
+        resp.raise_for_status()
+        return bool((resp.json().get(SERVICE) or {}).get("row"))
+    except (requests.RequestException, ValueError):
+        return False
+
+
+def latest_available_date(api_key: str, wanted: str) -> str:
+    """wanted 이하에서 자료가 있는 가장 최근 날짜. 못 찾으면 wanted 그대로."""
+    global _resolved_lag
+    order = list(_PROBE_DAYS)
+    if _resolved_lag is not None:          # 지난번 지연 일수를 먼저 시도
+        order.insert(0, _resolved_lag)
+    for days in order:
+        candidate = _shift(wanted, days)
+        if _has_data(api_key, candidate):
+            _resolved_lag = days
+            return candidate
+    return wanted
 
 
 def _fetch_hour(api_key: str, date: str, hour: int, adm_cd: str) -> float | None:
@@ -57,17 +97,23 @@ def _fetch_hour(api_key: str, date: str, hour: int, adm_cd: str) -> float | None
 
 
 def get_hourly_floating(api_key: str, adm_cd: str, date: str) -> dict:
-    """지정 날짜·행정동의 0~23시 생활인구. 반환: {hours, values, date, adm_cd}."""
+    """지정 날짜·행정동의 0~23시 생활인구.
+
+    date에 자료가 없으면 과거로 훑어 가장 최근 가용일로 대체한다.
+    반환의 date는 **실제로 쓴 날짜** — 화면에 그대로 표시한다.
+    """
+    used = date if _has_data(api_key, date) else latest_available_date(api_key, date)
     with ThreadPoolExecutor(max_workers=8) as pool:
         values = list(pool.map(
-            lambda h: _fetch_hour(api_key, date, h, adm_cd), range(24)))
+            lambda h: _fetch_hour(api_key, used, h, adm_cd), range(24)))
     if all(v is None for v in values):
         raise SeoulPopError(
-            "해당 날짜·행정동의 생활인구 자료가 없습니다. "
-            "행정동코드(예: 11110515)와 날짜(약 1주 전까지 공개)를 확인하세요.")
+            f"{used} 기준으로 해당 행정동의 생활인구 자료가 없습니다. "
+            "행정동코드(행자부 8자리, 예: 11110515)를 확인해 주세요.")
     return {
         "adm_cd": adm_cd,
-        "date": date,
+        "date": used,
+        "requested_date": date,
         "hours": list(range(24)),
         "values": [v if v is not None else 0.0 for v in values],
     }
@@ -104,14 +150,18 @@ def get_citywide_daily(api_key: str, date: str) -> dict:
     if date in _citywide_cache:
         return _citywide_cache[date]
 
+    used = date if _has_data(api_key, date) else latest_available_date(api_key, date)
+    if used in _citywide_cache:
+        return _citywide_cache[used]
+
     with ThreadPoolExecutor(max_workers=8) as pool:
-        hourly = list(pool.map(lambda h: _fetch_hour_all(api_key, date, h), range(24)))
+        hourly = list(pool.map(lambda h: _fetch_hour_all(api_key, used, h), range(24)))
 
     hours_used = sum(1 for rows in hourly if rows)
     if hours_used == 0:
         raise SeoulPopError(
-            "서울 생활인구 전역 자료를 가져오지 못했습니다. "
-            "인증키와 날짜(약 1주 전까지 공개)를 확인하세요.")
+            f"서울 생활인구 전역 자료를 가져오지 못했습니다 ({used} 기준). "
+            "인증키를 확인해 주세요.")
 
     acc: dict[str, dict] = {}
     for hour, rows in enumerate(hourly):
@@ -124,7 +174,8 @@ def get_citywide_daily(api_key: str, date: str) -> dict:
                 slot["peak_hour"] = hour
 
     result = {
-        "date": date,
+        "date": used,
+        "requested_date": date,
         "hours_used": hours_used,
         "dongs": {
             adm: {
@@ -137,5 +188,8 @@ def get_citywide_daily(api_key: str, date: str) -> dict:
     }
     if len(_citywide_cache) >= _CITYWIDE_CACHE_MAX:
         _citywide_cache.pop(next(iter(_citywide_cache)))
+    # 요청 날짜와 실제 사용 날짜 둘 다로 걸어 둔다 — 다음 요청이 어느 쪽으로
+    # 오든 재탐색 없이 캐시를 맞힌다
+    _citywide_cache[used] = result
     _citywide_cache[date] = result
     return result
