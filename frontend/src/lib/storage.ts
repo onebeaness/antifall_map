@@ -26,6 +26,11 @@ const KEYS = {
   precision: "ansim.assessment.precision",
 } as const;
 
+/** 진행 중 초안 — 설문 화면이 직접 읽고 쓴다(문항마다 저장해야 해서 여기를
+ * 거치지 않는다). 다만 기록을 지울 때 남으면 "지웠는데 이어하기가 뜬다"가
+ * 되므로, 삭제 목록에는 포함해 둔다. */
+const DRAFT_KEYS = ["ansim.draft.simple", "ansim.draft.precision"] as const;
+
 function read<T>(key: string): T | null {
   if (typeof window === "undefined") return null;
   try {
@@ -55,8 +60,15 @@ class LocalStorageStorage implements AppStorage {
   async getPrecision() { return read<AssessmentRecord>(KEYS.precision); }
   async savePrecision(r: AssessmentRecord) { write(KEYS.precision, r); }
   async clearPrecision() { remove(KEYS.precision); }
-  async clearAssessments() { remove(KEYS.simple); remove(KEYS.precision); }
-  async clearAll() { Object.values(KEYS).forEach(remove); }
+  async clearAssessments() {
+    remove(KEYS.simple);
+    remove(KEYS.precision);
+    DRAFT_KEYS.forEach(remove);
+  }
+  async clearAll() {
+    Object.values(KEYS).forEach(remove);
+    DRAFT_KEYS.forEach(remove);
+  }
 }
 
 /* Supabase 전환 스텁 — 활성화하려면:

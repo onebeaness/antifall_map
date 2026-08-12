@@ -6,7 +6,8 @@
  * - 시간대별 생활인구: 서울 열린데이터광장 (서울 한정)
  *
  * 대시보드의 '선택 행정동 상세' 카드 안에 들어가는 조각이라 자체 제목을 두지
- * 않는다. 키가 없거나 조회에 실패하면 시연용 목업으로 대체하고 그 사실을 밝힌다.
+ * 않는다. 키가 없거나 조회에 실패하면 값을 지어내지 않고 "자료 없음"과 실패
+ * 사유를 그대로 보여 준다.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TrendLine } from "@/components/charts/TrendLine";

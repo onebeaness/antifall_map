@@ -20,6 +20,8 @@ ML 모델·설문 문항은 **ML 확정본(2026-07-15, 팀원 배포용)** 을 �
 | `backend/` | FastAPI + ML 모델 서빙. 도커 불필요 — 순수 Python 앱 |
 | `backend/models/` | ML 확정본 pkl 4종 + `model_utils.py` (predict/explain) |
 | `supabase/schema.sql` | Supabase 전환용 스키마(프로필·진단 이력 + RLS). **아직 미연결** |
+| `docs/IA.md` | 정보구조 — 화면 계층·이동 규칙·데이터 보관·API 계약 |
+| `docs/FUNCTIONAL_SPEC.md` | 기능명세서 — 기능 30건·산출 로직·외부 연동·오류 처리 |
 
 ## 실행
 

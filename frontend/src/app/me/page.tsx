@@ -158,7 +158,7 @@ export default function HubPage() {
                 </div>
               </div>
               <div style={{ fontSize: 14, lineHeight: 1.6, color: "var(--ink-muted)", margin: "16px 0" }}>
-                아직 아직 확인하지 않았습니다. 6개의 간단한 질문으로 지금 바로 위험도를 확인해 보세요.
+                아직 확인하지 않았습니다. 6개의 간단한 질문으로 지금 바로 위험도를 확인해 보세요.
               </div>
               <Button fullWidth onClick={() => router.push("/me/simple")}>간편 확인 시작하기 →</Button>
             </>
