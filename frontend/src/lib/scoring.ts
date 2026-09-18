@@ -190,3 +190,22 @@ export function simpleMessage(lv: Level): string {
 /** 수치를 오해하지 않도록 덧붙이는 고지 — 배포본의 핵심 문구 */
 export const SCORE_NOTE =
   "※ 이 수치는 시험 점수가 아니라, 입력하신 내용을 바탕으로 계산된 낙상 위험 확률입니다.";
+
+/** 생년월일(YYYYMMDD)로 만 나이 계산.
+ *
+ * 프로필에 이미 생년월일이 있으므로 나이를 다시 묻지 않고 채워 넣는다.
+ * 생일이 지났는지까지 따져 만 나이를 낸다 (한국식 세는 나이 아님).
+ * 형식이 어긋나면 null — 호출부에서 직접 입력받는다.
+ */
+export function ageFromBirth(birth: string | undefined, today = new Date()): number | null {
+  if (!birth || !/^\d{8}$/.test(birth)) return null;
+  const year = Number(birth.slice(0, 4));
+  const month = Number(birth.slice(4, 6));
+  const day = Number(birth.slice(6, 8));
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  let age = today.getFullYear() - year;
+  const beforeBirthday =
+    today.getMonth() + 1 < month || (today.getMonth() + 1 === month && today.getDate() < day);
+  if (beforeBirthday) age -= 1;
+  return age >= 0 && age <= 130 ? age : null;
+}

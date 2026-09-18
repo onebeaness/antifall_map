@@ -6,12 +6,17 @@
  * - 시간대별 생활인구: 서울 열린데이터광장 (서울 한정)
  *
  * 대시보드의 '선택 행정동 상세' 카드 안에 들어가는 조각이라 자체 제목을 두지
- * 않는다. 키가 없거나 조회에 실패하면 시연용 목업으로 대체하고 그 사실을 밝힌다.
+ * 않는다. 키가 없거나 조회에 실패하면 값을 지어내지 않고 "자료 없음"과 실패
+ * 사유를 그대로 보여 준다.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TrendLine } from "@/components/charts/TrendLine";
 import { getDongPopulation, getFloatingPopulation } from "@/lib/api";
 import type { DongPopulation, FloatingPopulation } from "@/lib/types";
+
+/** YYYYMMDD → 2026-06-23 */
+const fmtDate = (d: string) =>
+  d?.length === 8 ? `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6)}` : d;
 
 const HOUR_LABELS = Array.from({ length: 24 }, (_, h) => `${h}시`);
 
@@ -133,7 +138,11 @@ export function PopulationPanel({ selected }: { selected?: SelectedDong | null }
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, margin: "18px 0 6px" }}>
         <span style={{ fontSize: 13, fontWeight: 800 }}>시간대별 생활인구</span>
         <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>
-          {floating ? `서울 열린데이터 · ${floating.date}` : busy ? "조회 중..." : "자료 없음"}
+          {floating
+            ? `서울 열린데이터 · ${fmtDate(floating.date)} 기준`
+              + (floating.requested_date && floating.requested_date !== floating.date
+                 ? " (공개된 최신일)" : "")
+            : busy ? "조회 중..." : "자료 없음"}
         </span>
       </div>
       {values ? (

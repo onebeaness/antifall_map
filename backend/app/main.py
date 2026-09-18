@@ -5,6 +5,8 @@
 """
 from __future__ import annotations
 
+import threading
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -15,9 +17,30 @@ from app.services import walkway
 
 app = FastAPI(
     title="낙지도 API",
-    description="노인 낙상 위험 예측 서비스 백엔드 — ML 추론 + 외부 API 프록시",
+    description="어르신 낙상 위험 예측 서비스 백엔드 — ML 추론 + 외부 API 프록시",
     version="1.0.0",
 )
+
+
+@app.on_event("startup")
+def warm_up() -> None:
+    """모델·색인을 미리 올려 첫 사용자가 콜드 스타트를 떠안지 않게 한다.
+
+    pkl 로딩과 SHAP explainer 생성에 1.4초가 걸리는데, 그 비용을 맨 처음
+    요청한 사람이 전부 문다. 대개 간편 확인을 먼저 하므로 "간편이 심층보다
+    느리다"는 현상이 생겼다 (예열 후에는 간편 2ms, 심층 166ms로 반대다).
+
+    백그라운드 스레드로 돌려 기동 자체는 막지 않는다 — 예열 중에 들어온
+    요청은 평소처럼 지연 로딩 경로를 타면 되고, 헬스체크도 바로 응답한다.
+    """
+    def _warm() -> None:
+        try:
+            walkway.is_available()      # npz 로드 + KDTree 구축
+            fall_model.warm_up()        # 4개 모델 + explainer
+        except Exception:               # 예열 실패가 서버를 죽이면 안 된다
+            pass
+
+    threading.Thread(target=_warm, name="warmup", daemon=True).start()
 
 app.add_middleware(
     CORSMiddleware,

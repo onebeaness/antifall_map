@@ -12,8 +12,10 @@ export interface StepItem {
 export interface StepPanelProps {
   /** 상단 오버라인 (예: "심층 확인") */
   overline?: string;
-  /** 큰 제목 (예: "김순자님\n50문항 중 23문항 완료") */
+  /** 큰 제목 (예: "김순자님") */
   title: string;
+  /** 제목 아래 한 줄 (예: "42문항 중 23문항 완료") */
+  subtitle?: string;
   steps: StepItem[];
   /** 하단 전체 진행률 0–100 (생략 시 진행률 바 없음) */
   progress?: number;
@@ -23,11 +25,15 @@ export interface StepPanelProps {
  * 좌측 스텝 내비 패널(네이비) — 심층 확인의 단계 이동 현황.
  * 완료=초록 ✓, 진행 중=흰 원 + 하이라이트, 대기=45% 테두리 원 + 반투명.
  */
-export function StepPanel({ overline, title, steps, progress }: StepPanelProps) {
+export function StepPanel({ overline, title, subtitle, steps, progress }: StepPanelProps) {
   return (
     <div style={{ background: "var(--gov-navy)", color: "#fff", borderRadius: 16, padding: "26px 22px", display: "flex", flexDirection: "column", minHeight: 420 }}>
       {overline && <div style={{ fontSize: 13, fontWeight: 700, color: "#9fb0e6", marginBottom: 4 }}>{overline}</div>}
-      <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.3px", marginBottom: 20, whiteSpace: "pre-line" }}>{title}</div>
+      <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.3px", wordBreak: "keep-all" }}>{title}</div>
+      {subtitle && (
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#cfd6ee", marginTop: 4, wordBreak: "keep-all" }}>{subtitle}</div>
+      )}
+      <div style={{ height: 20 }} />
       <div style={{ display: "flex", flexDirection: "column" }}>
         {steps.map((s, i) => {
           const circle =

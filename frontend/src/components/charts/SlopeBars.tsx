@@ -1,8 +1,9 @@
 "use client";
 
-/** 구간별 경사도 막대 (+오르막 / −내리막) — 색은 경사도 구간 스케일(geo.ts). */
+/** 구간별 경사 막대 (+오르막 / −내리막) — 색은 경사 구간 스케일(geo.ts).
+ * 백엔드는 기울기(%)로 주고, 화면 표기는 대시보드와 같은 도(°)로 통일한다. */
 import React from "react";
-import { slopeColor } from "@/lib/geo";
+import { percentToDegrees, slopeColor } from "@/lib/geo";
 
 const W = 520;
 const H = 240;
@@ -15,7 +16,8 @@ export function SlopeBars({ distances, slopes }: {
   if (slopes.length === 0) return null;
   const iw = W - PAD.left - PAD.right;
   const ih = H - PAD.top - PAD.bottom;
-  const maxAbs = Math.max(2, ...slopes.map((s) => Math.abs(s)));
+  const deg = slopes.map(percentToDegrees);
+  const maxAbs = Math.max(2, ...deg.map(Math.abs));
   const maxD = distances[distances.length - 1];
 
   const x = (d: number) => PAD.left + (d / maxD) * iw;
@@ -33,7 +35,7 @@ export function SlopeBars({ distances, slopes }: {
           <line x1={PAD.left} y1={y(v)} x2={PAD.left + iw} y2={y(v)}
                 stroke={v === 0 ? "var(--line)" : "var(--track)"} strokeWidth={1} />
           <text x={PAD.left - 6} y={y(v) + 4} textAnchor="end" fontSize={11} fill="var(--ink-muted)">
-            {v > 0 ? `+${v.toFixed(0)}%` : `${v.toFixed(0)}%`}
+            {v > 0 ? `+${v.toFixed(0)}°` : `${v.toFixed(0)}°`}
           </text>
         </g>
       ))}
@@ -42,14 +44,14 @@ export function SlopeBars({ distances, slopes }: {
           {(d / 1000).toFixed(1)}km
         </text>
       ))}
-      {slopes.map((s, i) => {
+      {deg.map((d, i) => {
         const cx = x(distances[i + 1]);
-        const top = Math.min(zeroY, y(s));
-        const h = Math.max(1, Math.abs(y(s) - zeroY));
+        const top = Math.min(zeroY, y(d));
+        const h = Math.max(1, Math.abs(y(d) - zeroY));
         return (
           <rect key={i} x={cx - barW / 2} y={top} width={barW} height={h}
-                fill={slopeColor(s)} rx={1}>
-            <title>{`${(distances[i + 1] / 1000).toFixed(2)}km · 경사 ${s >= 0 ? "+" : ""}${s.toFixed(1)}%`}</title>
+                fill={slopeColor(slopes[i])} rx={1}>
+            <title>{`${(distances[i + 1] / 1000).toFixed(2)}km · 경사 ${d >= 0 ? "+" : ""}${d.toFixed(1)}°`}</title>
           </rect>
         );
       })}

@@ -161,7 +161,8 @@ export default function PrecisionTestPage() {
           <div className="desktop-only">
             <StepPanel
               overline="심층 확인"
-              title={`${name}님\n${TOTAL_Q}문항 중 ${totalDone}문항 완료`}
+              title={`${name}님`}
+              subtitle={`${TOTAL_Q}문항 중 ${totalDone}문항 완료`}
               steps={steps}
               progress={(totalDone / TOTAL_Q) * 100}
             />
@@ -228,7 +229,7 @@ function Question({ idx, ans, start, busy, setAnswer, onPrev, onNext, onQuit }: 
 
       <Card>
         <div style={{ fontSize: 17, fontWeight: 700, lineHeight: 1.5 }}>
-          <span style={{ whiteSpace: "pre-line" }}>{card.title}</span>
+          <span style={{ wordBreak: "keep-all" }}>{card.title}</span>
           {card.section && (
             <span style={{
               fontSize: 12.5, fontWeight: 700, color: "var(--ink-muted)", background: "#f3f5fc",

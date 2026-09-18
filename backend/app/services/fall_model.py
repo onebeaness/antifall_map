@@ -200,6 +200,27 @@ def _run(features: dict, service: str, fall_experience: bool) -> dict:
     return out
 
 
+def warm_up() -> None:
+    """모델 4개와 SHAP explainer를 미리 캐시에 올린다 (서버 기동 시 1회).
+
+    실제 추론과 같은 경로를 타야 explainer까지 캐시되므로 더미 입력으로
+    한 번씩 돌린다. 모델이 없으면 조용히 넘어간다.
+    """
+    if not is_available():
+        return
+    # 인코더를 그대로 태워야 실제 요청과 같은 변수 구성이 된다
+    answers = {"sex": "F", "age": 75, "drug_count": 2, "hospitalized_1yr": "N",
+               "subjective_health": 3, "mobility_aid": "N"}
+    for service, features in (("간략", encode_simple(answers)),
+                              ("정밀", encode_complex(answers))):
+        for model in ("A", "B"):
+            try:
+                _mu.predict(features, service, model)
+                _mu.explain(features, service, model, top_n=1)
+            except Exception:  # 예열 실패는 무시 — 실제 요청 때 다시 시도한다
+                pass
+
+
 def assess_from_simple(answers: dict, fall_experience: bool) -> dict:
     return _run(encode_simple(answers), "간략", bool(fall_experience))
 

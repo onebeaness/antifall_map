@@ -24,6 +24,11 @@ html,
 body {
   margin: 0;
   padding: 0;
+  /* 한국어는 어절(띄어쓰기) 단위로 끊어야 자연스럽다.
+     기본값(normal)은 글자 단위로 잘라 "보행환" / "경"처럼 어색해진다.
+     긴 URL·영문은 overflow-wrap으로 따로 처리한다. */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 body {
@@ -126,6 +131,83 @@ a {
 .detail-side {
   border-left: 1px solid var(--line);
   padding-left: 20px;
+}
+
+/* 그리드 칸은 기본이 min-width:auto라 안에 있는 표·긴 문장보다 좁아지지 못한다.
+ * 그래서 좁은 화면에서 1열로 바뀌어도 칸이 화면 밖으로 삐져나갔다
+ * (390px에서 89px 넘침). 칸이 줄어들 수 있게 풀어 준다. */
+.dash-grid > *,
+.dash-grid-2 > *,
+.detail-grid > * {
+  min-width: 0;
+}
+
+/* 아코디언 (components/ui/Disclosure).
+ * 네이티브 <details>라 [open] 상태를 CSS로만 다룰 수 있다 —
+ * 인라인 스타일로는 화살표를 돌릴 수 없어 여기 둔다. */
+.faq {
+  border-top: 1px solid var(--track);
+}
+
+.faq > summary {
+  list-style: none; /* Firefox 기본 삼각형 제거 */
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 11px 2px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* Safari·Chrome 기본 삼각형 제거 */
+.faq > summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq > summary::before {
+  content: "›";
+  flex: none;
+  width: 14px;
+  font-size: 16px;
+  line-height: 1.2;
+  color: var(--medical-blue);
+  transition: transform 0.15s ease;
+}
+
+.faq[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.faq > summary:hover {
+  color: var(--medical-blue);
+}
+
+.faq > summary:focus-visible {
+  outline: 2px solid var(--medical-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.faq-body {
+  padding: 0 2px 14px 22px;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--ink-muted);
+}
+
+.faq-body b {
+  color: var(--ink);
+}
+
+.faq-body ul {
+  margin: 0;
+  padding-left: 15px;
+}
+
+.faq-body li {
+  margin: 2px 0;
 }
 
 /* 등록 화면 — 브랜드 패널 | 폼 */

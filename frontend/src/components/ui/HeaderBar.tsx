@@ -2,7 +2,7 @@ import React from "react";
 import { LogoMark } from "./LogoMark";
 
 export interface HeaderBarProps {
-  /** 서비스명 (예: "낙지도 — 노인 낙상 위험 예측 서비스") */
+  /** 서비스명 (예: "낙지도 — 어르신 낙상 예방 서비스") */
   title: string;
   /** 우측 끝 부가 요소 (예: "23 / 50 문항") */
   right?: React.ReactNode;
