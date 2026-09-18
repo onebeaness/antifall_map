@@ -56,7 +56,7 @@ export const SIMPLE_QUESTIONS: (QuestionCard & { simpleSection: string })[] = [
     options: [["매우 건강하다", 1], ["건강한 편이다", 2], ["보통이다", 3],
               ["건강하지 않은 편이다", 4], ["매우 건강하지 않다", 5]] },
   { code: "mobility_aid", simpleSection: "이동 능력", type: "choice",
-    title: "지팡이·워커·휠체어 같은 보조기를 사용하시나요?",
+    title: "집 안팎 이동 시 보조기를 사용하나요?",
     help: "워커, 휠체어, 지팡이 등을 포함합니다.",
     options: [["예, 사용합니다", "Y"], ["아니오, 사용하지 않습니다", "N"]] },
 ];
